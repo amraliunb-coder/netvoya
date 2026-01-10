@@ -34,7 +34,6 @@ const PRICING_DATA: RegionData = {
         "Bahrain": [{ data: "1GB", price: "$4.5" }, { data: "3GB", price: "$12" }, { data: "5GB", price: "$16" }, { data: "10GB", price: "$25.5" }, { data: "20GB", price: "$39.5" }],
         "Egypt": [{ data: "1GB", price: "$5" }, { data: "3GB", price: "$14" }, { data: "5GB", price: "$22.5" }, { data: "10GB", price: "$38" }, { data: "20GB", price: "$48.5" }],
         "Iraq": [{ data: "1GB", price: "$4" }, { data: "3GB", price: "$11" }, { data: "5GB", price: "$16.5" }, { data: "10GB", price: "$29" }, { data: "20GB", price: "$48.5" }],
-        "Israel": [{ data: "1GB", price: "$4" }, { data: "3GB", price: "$5.5" }, { data: "5GB", price: "$7.5" }, { data: "10GB", price: "$11.5" }, { data: "20GB", price: "$16.5" }],
         "Jordan": [{ data: "1GB", price: "$4" }, { data: "3GB", price: "$11.5" }, { data: "5GB", price: "$17.5" }, { data: "10GB", price: "$29.5" }, { data: "20GB", price: "$48.5" }],
         "Kuwait": [{ data: "1GB", price: "$4" }, { data: "3GB", price: "$9" }, { data: "5GB", price: "$14" }, { data: "10GB", price: "$24" }, { data: "20GB", price: "$37.5" }],
         "Morocco": [{ data: "1GB", price: "$6" }, { data: "3GB", price: "$17.5" }, { data: "5GB", price: "$27.5" }, { data: "10GB", price: "$41.5" }, { data: "20GB", price: "$59.5" }],
