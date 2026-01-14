@@ -5,14 +5,14 @@ const Footer: React.FC = () => {
   return (
     <footer className="bg-background border-t border-white/10 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           {/* Brand */}
           <div className="space-y-6">
             <div className="flex items-center">
-              <img 
-                src="https://res.cloudinary.com/drzid08rg/image/upload/d91fcd24-8cf6-4adf-b9df-7312622185a8_ihpxqo.png" 
-                alt="NetVoya" 
+              <img
+                src="https://res.cloudinary.com/drzid08rg/image/upload/d91fcd24-8cf6-4adf-b9df-7312622185a8_ihpxqo.png"
+                alt="NetVoya"
                 className="h-12 w-auto object-contain"
               />
             </div>
@@ -61,7 +61,7 @@ const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-600 font-mono">
           <div>&copy; 2024 NetVoya. All rights reserved.</div>
-          <div className="hidden md:block">The evolution of Alex Esim - Built for scale.</div>
+          <div className="hidden md:block">Enterprise-Grade Infrastructure — Built for Scale</div>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white transition-colors">Terms</a>
             <a href="#" className="hover:text-white transition-colors">Privacy</a>

@@ -14,9 +14,9 @@ const Hero: React.FC<HeroProps> = ({ onActionClick }) => {
       <div className="absolute inset-0 bg-grid-pattern bg-[length:32px_32px] opacity-30 pointer-events-none"></div>
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-      
+
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center z-10">
-        
+
         {/* Label */}
         <Reveal delay={0}>
           <div className="inline-flex items-center gap-2 px-3 py-1 mb-8 border-l-2 border-primary bg-white/5 backdrop-blur-sm">
@@ -69,11 +69,11 @@ const Hero: React.FC<HeroProps> = ({ onActionClick }) => {
             </div>
           </div>
         </Reveal>
-        
+
         {/* Bottom Badge */}
         <Reveal delay={0.6}>
           <div className="mt-8 text-slate-500 text-sm flex items-center gap-2">
-            <span className="text-primary">✓</span> The evolution of Alex Esim - Now serving B2B at scale
+            <span className="text-primary">✓</span> Enterprise Connectivity Infrastructure — Reimagined for Scale
           </div>
         </Reveal>
 
