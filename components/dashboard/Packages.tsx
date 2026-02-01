@@ -33,7 +33,7 @@ const Packages: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'idle' | 'saving' | 'saved' }>({});
 
-    const API_BASE = 'http://localhost:3001/api';
+    const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
 
     const fetchPackages = async () => {
         try {
