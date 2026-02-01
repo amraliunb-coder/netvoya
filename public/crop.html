@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <img id="source" src="favicon.png" style="display:none;" crossorigin="anonymous">
+    <canvas id="canvas"></canvas>
+    <img id="result" />
+    <script>
+        window.onload = function () {
+            const img = document.getElementById('source');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Determine crop size - assume icon is square-ish on the left
+            // We'll take the height of the image and use it as the width for a square crop from left
+            const size = img.naturalHeight;
+
+            canvas.width = size;
+            canvas.height = size;
+
+            // Draw cropped image (0,0,size,size) from source to (0,0,size,size) on canvas
+            ctx.drawImage(img, 0, 0, size, size, 0, 0, size, size);
+
+            // Export to base64
+            const dataURL = canvas.toDataURL('image/png');
+            document.getElementById('result').src = dataURL;
+
+            // Output for automation to grab
+            console.log('CROPPED_DATA:' + dataURL);
+
+            // Add text area for easy copying if manual
+            const ta = document.createElement('textarea');
+            ta.id = 'b64';
+            ta.value = dataURL;
+            document.body.appendChild(ta);
+        };
+    </script>
+</body>
+
+</html>
