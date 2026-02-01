@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EA580C;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <mask id="cutout">
+    <rect width="100%" height="100%" fill="white"/>
+    <!-- Cutout for the N shape -->
+    <path d="M140 100 L140 412 L200 412 L330 200 L330 412 L390 412 L390 100 L330 100 L200 312 L200 100 Z" fill="black"/>
+  </mask>
+  
+  <!-- Main Circle Background -->
+  <circle cx="256" cy="256" r="256" fill="url(#brandGrad)" />
+  
+  <!-- The 'N' is formed by the negative space (white) -->
+  <path d="M165 140 L165 372 L210 372 L320 195 L320 372 L365 372 L365 140 L320 140 L210 317 L210 140 Z" fill="white" />
+</svg>
