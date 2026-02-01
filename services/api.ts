@@ -1,7 +1,7 @@
 import { RegistrationData, LoginData, ApiResponse } from '../types';
 
 // API Configuration
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
 export class ApiError extends Error {
   status: number;
@@ -17,7 +17,7 @@ export class ApiError extends Error {
  */
 async function handleResponse(response: Response): Promise<ApiResponse> {
   const data = await response.json();
-  
+
   if (!response.ok) {
     if (response.status === 400) {
       throw new ApiError(data.message || "Invalid request. Please check your inputs.", 400);
@@ -31,7 +31,7 @@ async function handleResponse(response: Response): Promise<ApiResponse> {
       throw new ApiError(data.message || `Request failed with status ${response.status}`, response.status);
     }
   }
-  
+
   return data as ApiResponse;
 }
 

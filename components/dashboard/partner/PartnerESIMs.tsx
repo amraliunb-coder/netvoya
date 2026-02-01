@@ -34,7 +34,7 @@ const PartnerESIMs: React.FC = () => {
   const [assignmentData, setAssignmentData] = useState({ name: '', email: '' });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
 
-  const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+  const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
   const fetchInventory = async () => {
     try {
