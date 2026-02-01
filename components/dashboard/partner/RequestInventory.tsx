@@ -220,92 +220,94 @@ const RequestInventory: React.FC = () => {
           {/* STEP 2: Selection by Country */}
           {step === 2 && (
             <div className="space-y-8 animate-in-view py-6">
-              <div className="max-w-xl">
+              <div className="max-w-4xl">
                 <label className="block text-slate-400 text-sm font-medium mb-4 uppercase tracking-widest">Step 2: Selection</label>
                 <h3 className="text-2xl font-display font-bold text-white mb-2">Select your target locations</h3>
-                <p className="text-slate-500 text-sm mb-6">Choose one or more packages based on where your clients travel.</p>
+                <p className="text-slate-500 text-sm mb-6">Choose packages to add to your inventory request. Rates are per token.</p>
 
-                <div className="relative">
-                  {/* Multi-Select Trigger */}
-                  <div
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className={`w-full bg-white/5 border rounded-2xl p-4 flex flex-wrap gap-2 cursor-pointer transition-all min-h-[64px] ${showDropdown ? 'border-orange-500/50 ring-4 ring-orange-500/10' : 'border-white/10 hover:border-white/20'}`}
-                  >
-                    {selectedPackages.length === 0 ? (
-                      <div className="flex items-center gap-3 text-slate-500 w-full px-2">
-                        <Search size={18} />
-                        <span>Search and select packages...</span>
-                      </div>
-                    ) : (
-                      selectedPackages.map(pkg => (
-                        <div key={pkg._id} className="bg-orange-500 text-white text-xs font-bold py-1.5 pl-3 pr-2 rounded-lg flex items-center gap-2 animate-scale-in">
-                          {pkg.name}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleTogglePackage(pkg); }}
-                            className="hover:bg-white/20 rounded p-0.5 transition-colors"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
-                      <ChevronDown size={20} className={`transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
-                    </div>
-                  </div>
+                {/* Search Bar */}
+                <div className="relative mb-6">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                  <input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by country, region, or package name..."
+                    className="w-full bg-[#171717] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
+                  />
+                </div>
 
-                  {/* Dropdown Menu */}
-                  {showDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-3 bg-[#1e1e1e] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-slide-in">
-                      <div className="p-4 border-b border-white/5 bg-white/5">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                          <input
-                            autoFocus
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Quick search (e.g. USA, Europe, 5GB)"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-orange-500/50"
-                          />
-                        </div>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                {/* Packages Table */}
+                <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden shadow-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-white/5 text-slate-400 text-xs uppercase tracking-wider">
+                          <th className="px-6 py-4 font-semibold w-16 text-center">Select</th>
+                          <th className="px-6 py-4 font-semibold">Package Details</th>
+                          <th className="px-6 py-4 font-semibold">Specs</th>
+                          <th className="px-6 py-4 font-semibold text-right">Rate (USD)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
                         {loading ? (
-                          <div className="p-8 text-center text-slate-500">Loading catalog...</div>
+                          <tr>
+                            <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                              Loading catalog...
+                            </td>
+                          </tr>
                         ) : filteredPackages.length === 0 ? (
-                          <div className="p-8 text-center text-slate-500">No matching plans found</div>
+                          <tr>
+                            <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                              No matching plans found. Try a different search term.
+                            </td>
+                          </tr>
                         ) : (
                           filteredPackages.map(pkg => {
-                            const isSelected = selectedPackages.find(p => p._id === pkg._id);
+                            const isSelected = selectedPackages.some(p => p._id === pkg._id);
                             return (
-                              <div
+                              <tr
                                 key={pkg._id}
                                 onClick={() => handleTogglePackage(pkg)}
-                                className={`p-4 cursor-pointer flex items-center justify-between group transition-colors ${isSelected ? 'bg-orange-500/5' : 'hover:bg-white/5'}`}
+                                className={`cursor-pointer transition-colors group ${isSelected ? 'bg-orange-500/5 hover:bg-orange-500/10' : 'hover:bg-white/5'}`}
                               >
-                                <div className="flex items-center gap-4">
-                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${isSelected ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-400 group-hover:text-white'}`}>
-                                    <Globe size={18} />
+                                <td className="px-6 py-4 text-center">
+                                  <div className={`w-5 h-5 rounded border mx-auto flex items-center justify-center transition-all ${isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                    {isSelected && <Check size={14} strokeWidth={3} />}
                                   </div>
-                                  <div>
-                                    <div className={`font-medium transition-colors ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                                      {pkg.name}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-orange-500/20 text-orange-500' : 'bg-white/5 text-slate-400'}`}>
+                                      <Globe size={16} />
                                     </div>
-                                    <div className="text-xs text-slate-500">
-                                      {pkg.data_limit_gb}GB • {pkg.duration_days} Days • ${pkg.retail_price.toFixed(2)} / token
+                                    <div>
+                                      <div className={`font-medium ${isSelected ? 'text-white' : 'text-slate-300'}`}>{pkg.name}</div>
+                                      <div className="text-xs text-slate-500">{pkg.region}</div>
                                     </div>
                                   </div>
-                                </div>
-                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-white/10 group-hover:border-white/30'}`}>
-                                  {isSelected && <Check size={14} strokeWidth={3} />}
-                                </div>
-                              </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-slate-400">
+                                    <span className="text-slate-300">{pkg.data_limit_gb}GB</span> Data
+                                    <span className="mx-2 text-slate-600">•</span>
+                                    <span className="text-slate-300">{pkg.duration_days} Days</span> Validation
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className={`font-bold ${isSelected ? 'text-orange-500' : 'text-white'}`}>
+                                    ${pkg.retail_price.toFixed(2)}
+                                  </div>
+                                </td>
+                              </tr>
                             );
                           })
                         )}
-                      </div>
-                    </div>
-                  )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="mt-4 text-right text-xs text-slate-500">
+                  Selected: <span className="text-white font-bold">{selectedPackages.length}</span> packages
                 </div>
               </div>
             </div>
