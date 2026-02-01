@@ -1,130 +1,151 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NetVoya - Enterprise eSIM Solutions</title>
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              background: '#020617', /* slate-950 */
-              surface: '#0f172a',    /* slate-900 */
-              primary: '#00D4FF',    /* Electric Cyan */
-              secondary: '#3B82F6',  /* Blue-500 */
-              border: 'rgba(255, 255, 255, 0.1)',
-            },
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              display: ['Space Grotesk', 'sans-serif'],
-              mono: ['Space Mono', 'monospace'],
-            },
-            backgroundImage: {
-              'grid-pattern': "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)",
-            }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetVoya - Enterprise eSIM Solutions</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#020617', /* slate-950 */
+            surface: '#0f172a',    /* slate-900 */
+            primary: '#00D4FF',    /* Electric Cyan */
+            secondary: '#3B82F6',  /* Blue-500 */
+            border: 'rgba(255, 255, 255, 0.1)',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['Space Mono', 'monospace'],
+          },
+          backgroundImage: {
+            'grid-pattern': "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)",
           }
         }
       }
-    </script>
+    }
+  </script>
 
-    <!-- Global Styles & Animations -->
-    <style>
-      body {
-        background-color: #020617;
-        color: #ffffff;
-        overflow-x: hidden;
-      }
+  <!-- Global Styles & Animations -->
+  <style>
+    body {
+      background-color: #020617;
+      color: #ffffff;
+      overflow-x: hidden;
+    }
 
-      /* Scroll-Triggered Entry Animation Class */
-      .animate-in-view {
-        animation: animationIn 0.8s ease-out forwards;
-      }
-      
-      .opacity-0-start {
+    /* Scroll-Triggered Entry Animation Class */
+    .animate-in-view {
+      animation: animationIn 0.8s ease-out forwards;
+    }
+
+    .opacity-0-start {
+      opacity: 0;
+    }
+
+    @keyframes animationIn {
+      0% {
         opacity: 0;
+        transform: translateY(30px);
+        filter: blur(8px);
       }
 
-      @keyframes animationIn {
-        0% {
-          opacity: 0;
-          transform: translateY(30px);
-          filter: blur(8px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-          filter: blur(0px);
-        }
-      }
-
-      /* Border Beam Animation */
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-      
-      .border-beam-container {
-        position: relative;
-        overflow: hidden;
-      }
-      
-      .border-beam-container::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 150%;
-        height: 150%;
-        background: conic-gradient(from 90deg at 50% 50%, transparent 0%, transparent 75%, #ffffff 100%);
-        transform-origin: 50% 50%;
-        transform: translate(-50%, -50%) rotate(0deg);
-        animation: spin 3s linear infinite;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-        z-index: 0;
-      }
-      
-      .border-beam-container:hover::before {
+      100% {
         opacity: 1;
+        transform: translateY(0);
+        filter: blur(0px);
+      }
+    }
+
+    /* Border Beam Animation */
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
       }
 
-      /* Clip Path Reveal */
-      @keyframes clip-reveal {
-        0% { clip-path: inset(100% 0 0 0); }
-        100% { clip-path: inset(0 0 0 0); }
+      to {
+        transform: rotate(360deg);
       }
-      
-      .animate-clip-reveal {
-        animation: clip-reveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .border-beam-container {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .border-beam-container::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 150%;
+      height: 150%;
+      background: conic-gradient(from 90deg at 50% 50%, transparent 0%, transparent 75%, #ffffff 100%);
+      transform-origin: 50% 50%;
+      transform: translate(-50%, -50%) rotate(0deg);
+      animation: spin 3s linear infinite;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .border-beam-container:hover::before {
+      opacity: 1;
+    }
+
+    /* Clip Path Reveal */
+    @keyframes clip-reveal {
+      0% {
+        clip-path: inset(100% 0 0 0);
       }
 
-      /* Marquee */
-      @keyframes marquee {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+      100% {
+        clip-path: inset(0 0 0 0);
       }
-      .animate-marquee {
-        animation: marquee 30s linear infinite;
+    }
+
+    .animate-clip-reveal {
+      animation: clip-reveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Marquee */
+    @keyframes marquee {
+      0% {
+        transform: translateX(0);
       }
 
-      /* Utilities */
-      .glass {
-        background: rgba(2, 6, 23, 0.8);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+      100% {
+        transform: translateX(-50%);
       }
-    </style>
+    }
+
+    .animate-marquee {
+      animation: marquee 30s linear infinite;
+    }
+
+    /* Utilities */
+    .glass {
+      background: rgba(2, 6, 23, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -135,10 +156,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
