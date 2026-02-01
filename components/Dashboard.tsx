@@ -115,8 +115,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
                 setSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${activeTab === item.id
-                  ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
             >
               {item.icon}
@@ -176,12 +176,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
             <div className="flex items-center gap-3">
               <div className="text-right hidden md:block">
                 <div className="text-sm font-medium text-white">
-                  {role === 'admin' ? 'Alex Johnson' : 'Partner Account'}
+                  {role === 'admin' ? 'Karim El Sharaany' : 'Partner Account'}
                 </div>
                 <div className="text-xs text-slate-500 capitalize">{role}</div>
               </div>
               <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-500 font-bold">
-                {role === 'admin' ? 'AJ' : 'PA'}
+                {role === 'admin' ? 'KS' : 'PA'}
               </div>
             </div>
           </div>
