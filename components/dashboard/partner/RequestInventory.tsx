@@ -121,7 +121,7 @@ const RequestInventory: React.FC = () => {
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-in-view">
-        <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 mb-6 border border-green-500/20">
+        <div className="w-20 h-20 bg-emerald-400/10 rounded-full flex items-center justify-center text-emerald-400 mb-6 border border-emerald-400/20">
           <Check size={40} />
         </div>
         <h2 className="text-3xl font-display font-bold text-white mb-4">Request Submitted!</h2>
@@ -159,10 +159,10 @@ const RequestInventory: React.FC = () => {
         <div className="flex items-center gap-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${step === i ? 'bg-orange-500 text-white' : step > i ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-slate-500 border border-white/10'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${step === i ? 'bg-orange-500 text-white' : step > i ? 'bg-emerald-400/20 text-emerald-400' : 'bg-white/5 text-slate-500 border border-white/10'}`}>
                 {step > i ? <Check size={16} /> : i}
               </div>
-              {i < 3 && <div className={`w-12 h-px ${step > i ? 'bg-green-500/20' : 'bg-white/5'}`} />}
+              {i < 3 && <div className={`w-12 h-px ${step > i ? 'bg-emerald-400/20' : 'bg-white/5'}`} />}
             </div>
           ))}
         </div>
@@ -348,7 +348,7 @@ const RequestInventory: React.FC = () => {
                     ))}
                   </div>
 
-                  <div className={`p-4 rounded-2xl border flex items-center justify-between ${currentTotalDist === totalTokens ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'}`}>
+                  <div className={`p-4 rounded-2xl border flex items-center justify-between ${currentTotalDist === totalTokens ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'}`}>
                     <span className="text-sm font-bold uppercase tracking-widest">Remaining to assign:</span>
                     <span className="text-xl font-display font-bold">{totalTokens - currentTotalDist}</span>
                   </div>
