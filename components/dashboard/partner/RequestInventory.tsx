@@ -317,37 +317,74 @@ const RequestInventory: React.FC = () => {
           {step === 3 && (
             <div className="space-y-8 animate-in-view py-6">
               <div className="flex flex-col lg:flex-row gap-8">
-                {/* Left Side: Distribution Inputs */}
+                {/* Left Side: Price List & Distribution Inputs */}
                 <div className="flex-1 space-y-6">
                   <div>
                     <label className="block text-slate-400 text-sm font-medium mb-4 uppercase tracking-widest">Step 3: Distribution</label>
                     <h3 className="text-2xl font-display font-bold text-white mb-2">Distribute your tokens</h3>
-                    <p className="text-slate-500 text-sm">Allocate {totalTokens} tokens across your selected destinations.</p>
+                    <p className="text-slate-500 text-sm">Allocate {totalTokens} tokens across your selected destinations. Review the price list below.</p>
                   </div>
 
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {selectedPackages.map(pkg => (
-                      <div key={pkg._id} className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all">
-                            <Package size={20} />
-                          </div>
-                          <div>
-                            <div className="text-white font-semibold">{pkg.name}</div>
-                            <div className="text-xs text-slate-500">${pkg.retail_price.toFixed(2)} retail</div>
-                          </div>
-                        </div>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            value={distributions[pkg._id] || ''}
-                            placeholder="0"
-                            onChange={(e) => handleDistChange(pkg._id, parseInt(e.target.value) || 0)}
-                            className="w-24 bg-black/40 border border-white/10 rounded-xl py-2 px-3 text-center text-white text-lg font-bold focus:outline-none focus:border-orange-500 transition-all"
-                          />
-                        </div>
-                      </div>
-                    ))}
+                  {/* Price List Table */}
+                  <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden shadow-xl">
+                    <div className="overflow-x-auto max-h-[350px] custom-scrollbar">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10">
+                          <tr className="bg-[#1a1a1a] text-slate-400 text-xs uppercase tracking-wider">
+                            <th className="px-4 py-3 font-semibold">Package</th>
+                            <th className="px-4 py-3 font-semibold">Region</th>
+                            <th className="px-4 py-3 font-semibold text-center">Data</th>
+                            <th className="px-4 py-3 font-semibold text-center">Days</th>
+                            <th className="px-4 py-3 font-semibold text-right">Rate</th>
+                            <th className="px-4 py-3 font-semibold text-center">Quantity</th>
+                            <th className="px-4 py-3 font-semibold text-right">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {selectedPackages.map(pkg => {
+                            const quantity = distributions[pkg._id] || 0;
+                            const subtotal = pkg.retail_price * quantity;
+                            return (
+                              <tr key={pkg._id} className="hover:bg-white/5 transition-colors group">
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center text-orange-500">
+                                      <Package size={14} />
+                                    </div>
+                                    <span className="text-white font-medium text-sm">{pkg.name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-slate-400 text-sm">{pkg.region}</td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className="text-white text-sm font-medium">{pkg.data_limit_gb}GB</span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className="text-slate-300 text-sm">{pkg.duration_days}</span>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <span className="text-orange-500 font-bold text-sm">${pkg.retail_price.toFixed(2)}</span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <input
+                                    type="number"
+                                    value={distributions[pkg._id] || ''}
+                                    placeholder="0"
+                                    min="0"
+                                    onChange={(e) => handleDistChange(pkg._id, parseInt(e.target.value) || 0)}
+                                    className="w-20 bg-black/40 border border-white/10 rounded-lg py-2 px-2 text-center text-white text-sm font-bold focus:outline-none focus:border-orange-500 transition-all"
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <span className={`font-bold text-sm ${quantity > 0 ? 'text-white' : 'text-slate-600'}`}>
+                                    ${subtotal.toFixed(2)}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
                   <div className={`p-4 rounded-2xl border flex items-center justify-between ${currentTotalDist === totalTokens ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'}`}>
