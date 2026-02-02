@@ -121,11 +121,44 @@ const RequestInventory: React.FC = () => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Mock submission for now
-      await new Promise(r => setTimeout(r, 2000));
+      // Prepare payload
+      const discountInfo = getDiscountInfo();
+      const packagesPayload = selectedPackages.filter(p => distributions[p._id] > 0).map(pkg => ({
+        name: pkg.name,
+        region: pkg.region,
+        quantity: distributions[pkg._id],
+        price: pkg.retail_price,
+        total: getDiscountedPrice(pkg.retail_price) * distributions[pkg._id]
+      }));
+
+      // Try to get partner info from local storage (best effort)
+      let partnerInfo = { name: 'Partner', email: 'Unknown', role: 'Partner' };
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          partnerInfo = {
+            name: user.username || user.email,
+            email: user.email,
+            role: user.role
+          };
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+
+      await axios.post(`${API_BASE}/request-inventory`, {
+        totalTokens,
+        totalAmount: totalCost, // totalCost is already calculated with discounts
+        discountLabel: discountInfo.hasDiscount ? discountInfo.label : null,
+        packages: packagesPayload,
+        partnerInfo
+      });
+
       setSuccess(true);
     } catch (err) {
-      setError('Submission failed. Please contact support.');
+      console.error(err);
+      setError('Submission failed. Please make sure the backend is running and try again.');
     } finally {
       setLoading(false);
     }
