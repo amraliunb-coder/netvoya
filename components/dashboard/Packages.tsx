@@ -32,6 +32,13 @@ const Packages: React.FC = () => {
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'idle' | 'saving' | 'saved' }>({});
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Filter packages based on search term
+    const filteredPackages = packages.filter(pkg =>
+        pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pkg.region.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -143,6 +150,33 @@ const Packages: React.FC = () => {
                 </div>
             )}
 
+            {/* Search Bar */}
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by country, region, or package name..."
+                    className="w-full bg-[#171717] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
+                />
+                {searchTerm && (
+                    <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                    >
+                        ✕
+                    </button>
+                )}
+            </div>
+
+            {/* Results count when searching */}
+            {searchTerm && (
+                <div className="text-sm text-slate-500">
+                    Showing <span className="text-white font-medium">{filteredPackages.length}</span> of <span className="text-white font-medium">{packages.length}</span> packages
+                </div>
+            )}
+
             <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -166,13 +200,20 @@ const Packages: React.FC = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : packages.length === 0 ? (
+                            ) : filteredPackages.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                                        No packages found. Click "Sync with Vendor" to populate.
+                                        {searchTerm ? (
+                                            <div>
+                                                <p>No packages found matching "<span className="text-orange-400">{searchTerm}</span>"</p>
+                                                <button onClick={() => setSearchTerm('')} className="text-orange-500 underline text-sm mt-2">Clear search</button>
+                                            </div>
+                                        ) : (
+                                            'No packages found. Click "Sync with Vendor" to populate.'
+                                        )}
                                     </td>
                                 </tr>
-                            ) : packages.map((pkg) => {
+                            ) : filteredPackages.map((pkg) => {
                                 const margin = ((pkg.retail_price - pkg.wholesale_cost) / pkg.retail_price * 100).toFixed(1);
                                 const isLoss = pkg.retail_price <= pkg.wholesale_cost;
 

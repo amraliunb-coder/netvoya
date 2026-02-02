@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Calculator,
   ShoppingCart,
-  ChevronRight
+  ChevronRight,
+  Percent
 } from 'lucide-react';
 import Button from '../../ui/Button';
 import axios from 'axios';
@@ -28,6 +29,10 @@ interface EsimPackage {
   is_live: boolean;
 }
 
+// Volume Discount Configuration (Tiered)
+const DISCOUNT_TIER_1 = { threshold: 100, percent: 0.05 }; // 5% for 100+
+const DISCOUNT_TIER_2 = { threshold: 300, percent: 0.10 }; // 10% for 300+
+
 const RequestInventory: React.FC = () => {
   const [step, setStep] = useState(1);
   const [totalTokens, setTotalTokens] = useState<number>(0);
@@ -39,6 +44,23 @@ const RequestInventory: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Tiered discount logic
+  const getDiscountInfo = () => {
+    if (totalTokens >= DISCOUNT_TIER_2.threshold) {
+      return { hasDiscount: true, percent: DISCOUNT_TIER_2.percent, label: '10%' };
+    } else if (totalTokens >= DISCOUNT_TIER_1.threshold) {
+      return { hasDiscount: true, percent: DISCOUNT_TIER_1.percent, label: '5%' };
+    }
+    return { hasDiscount: false, percent: 0, label: '' };
+  };
+
+  const discountInfo = getDiscountInfo();
+  const hasDiscount = discountInfo.hasDiscount;
+
+  const getDiscountedPrice = (price: number) => {
+    return hasDiscount ? price * (1 - discountInfo.percent) : price;
+  };
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -82,11 +104,11 @@ const RequestInventory: React.FC = () => {
     pkg.region.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const currentTotalDist = Object.values(distributions).reduce((a, b) => a + b, 0);
+  const currentTotalDist = Object.values(distributions).reduce((a: number, b: number) => a + b, 0);
   const isDistValid = currentTotalDist === totalTokens && totalTokens > 0;
 
   const totalCost = selectedPackages.reduce((acc, pkg) => {
-    return acc + (pkg.retail_price * (distributions[pkg._id] || 0));
+    return acc + (getDiscountedPrice(pkg.retail_price) * (distributions[pkg._id] || 0));
   }, 0);
 
   const nextStep = () => {
@@ -201,6 +223,13 @@ const RequestInventory: React.FC = () => {
                     <span>Minimum request is 10 tokens.</span>
                   </div>
                 )}
+
+                {hasDiscount && (
+                  <div className="mt-4 flex items-center gap-2 text-emerald-400 text-xs py-3 px-4 bg-emerald-400/10 border border-emerald-400/20 rounded-lg">
+                    <Percent size={14} />
+                    <span className="font-medium">Volume discount applied! You're saving {discountInfo.label} on all retail prices.</span>
+                  </div>
+                )}
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 max-w-lg">
@@ -211,6 +240,12 @@ const RequestInventory: React.FC = () => {
                   <div>
                     <h4 className="text-white font-medium mb-1">Flexible Distribution</h4>
                     <p className="text-sm text-slate-500">In the following steps, you'll be able to distribute these {totalTokens || 'X'} tokens across different countries according to your client needs.</p>
+                    {totalTokens > 0 && totalTokens < DISCOUNT_TIER_1.threshold && (
+                      <p className="text-xs text-orange-400 mt-2">💡 Order {DISCOUNT_TIER_1.threshold}+ tokens to unlock 5% discount!</p>
+                    )}
+                    {totalTokens >= DISCOUNT_TIER_1.threshold && totalTokens < DISCOUNT_TIER_2.threshold && (
+                      <p className="text-xs text-emerald-400 mt-2">🎉 5% discount applied! Order {DISCOUNT_TIER_2.threshold}+ tokens for 10% discount!</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -294,9 +329,18 @@ const RequestInventory: React.FC = () => {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                  <div className={`font-bold ${isSelected ? 'text-orange-500' : 'text-white'}`}>
-                                    ${pkg.retail_price.toFixed(2)}
-                                  </div>
+                                  {hasDiscount ? (
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-slate-500 text-xs line-through">${pkg.retail_price.toFixed(2)}</span>
+                                      <span className={`font-bold ${isSelected ? 'text-emerald-400' : 'text-emerald-400'}`}>
+                                        ${getDiscountedPrice(pkg.retail_price).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className={`font-bold ${isSelected ? 'text-orange-500' : 'text-white'}`}>
+                                      ${pkg.retail_price.toFixed(2)}
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             );
@@ -362,7 +406,14 @@ const RequestInventory: React.FC = () => {
                                   <span className="text-slate-300 text-sm">{pkg.duration_days}</span>
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                  <span className="text-orange-500 font-bold text-sm">${pkg.retail_price.toFixed(2)}</span>
+                                  {hasDiscount ? (
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-slate-500 text-[10px] line-through">${pkg.retail_price.toFixed(2)}</span>
+                                      <span className="text-emerald-400 font-bold text-sm">${getDiscountedPrice(pkg.retail_price).toFixed(2)}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-orange-500 font-bold text-sm">${pkg.retail_price.toFixed(2)}</span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                   <input
@@ -375,8 +426,8 @@ const RequestInventory: React.FC = () => {
                                   />
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                  <span className={`font-bold text-sm ${quantity > 0 ? 'text-white' : 'text-slate-600'}`}>
-                                    ${subtotal.toFixed(2)}
+                                  <span className={`font-bold text-sm ${quantity > 0 ? (hasDiscount ? 'text-emerald-400' : 'text-white') : 'text-slate-600'}`}>
+                                    ${(getDiscountedPrice(pkg.retail_price) * quantity).toFixed(2)}
                                   </span>
                                 </td>
                               </tr>
@@ -389,7 +440,7 @@ const RequestInventory: React.FC = () => {
 
                   <div className={`p-4 rounded-2xl border flex items-center justify-between ${currentTotalDist === totalTokens ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'}`}>
                     <span className="text-sm font-bold uppercase tracking-widest">Remaining to assign:</span>
-                    <span className="text-xl font-display font-bold">{totalTokens - currentTotalDist}</span>
+                    <span className="text-xl font-display font-bold">{totalTokens - (currentTotalDist as number)}</span>
                   </div>
                 </div>
 
@@ -401,10 +452,10 @@ const RequestInventory: React.FC = () => {
                       {selectedPackages.filter(p => distributions[p._id] > 0).map(pkg => (
                         <div key={pkg._id} className="flex justify-between text-sm animate-slide-in">
                           <span className="text-slate-400 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                            <div className={`w-1.5 h-1.5 ${hasDiscount ? 'bg-emerald-400' : 'bg-orange-500'} rounded-full`} />
                             {pkg.name} ({distributions[pkg._id]})
                           </span>
-                          <span className="text-white font-medium">${(pkg.retail_price * distributions[pkg._id]).toLocaleString()}</span>
+                          <span className={`font-medium ${hasDiscount ? 'text-emerald-400' : 'text-white'}`}>${(getDiscountedPrice(pkg.retail_price) * distributions[pkg._id]).toLocaleString()}</span>
                         </div>
                       ))}
                       <div className="pt-6 border-t border-white/10 space-y-4">
@@ -414,8 +465,14 @@ const RequestInventory: React.FC = () => {
                         </div>
                         <div className="flex justify-between items-baseline">
                           <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">Total Amount</span>
-                          <span className="text-4xl text-orange-500 font-display font-bold">${totalCost.toLocaleString()}</span>
+                          <span className={`text-4xl font-display font-bold ${hasDiscount ? 'text-emerald-400' : 'text-orange-500'}`}>${totalCost.toLocaleString()}</span>
                         </div>
+                        {hasDiscount && (
+                          <div className="mt-3 flex items-center justify-end gap-2 text-emerald-400 text-xs">
+                            <Percent size={12} />
+                            <span>{discountInfo.label} volume discount applied</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
