@@ -148,7 +148,7 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
                     <Zap size={18} />
                   </div>
                   <div>
-                    <div className="text-white font-medium text-sm">Global Data Plan</div>
+                    <div className="text-white font-medium text-sm">{(item.bucket_id as any)?.package_name || 'Global Data Plan'}</div>
                     <div className="text-slate-500 text-xs font-mono">ID: {item.iccid}</div>
                   </div>
                 </div>
