@@ -62,6 +62,11 @@ const ESIMManagement: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showForm, setShowForm] = useState(true);
 
+  // Verification State
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationDetails, setVerificationDetails] = useState<any>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+
   // Searchable Select State
   const [pkgSearch, setPkgSearch] = useState('');
   const [isPkgDropdownOpen, setIsPkgDropdownOpen] = useState(false);
@@ -111,6 +116,7 @@ const ESIMManagement: React.FC = () => {
       setTimeout(() => {
         setSubmitSuccess(false);
         setFormData({ partnerId: '', packageId: '', iccid: '', activationCode: '', qrCodeUrl: '' });
+        setVerificationDetails(null);
         setPkgSearch('');
         fetchData(); // Refresh list
       }, 2000);
@@ -118,6 +124,58 @@ const ESIMManagement: React.FC = () => {
       alert('Failed to issue eSIM: ' + (err.response?.data?.message || err.message));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const verifyICCID = async () => {
+    if (!formData.iccid || formData.iccid.length < 5) {
+      setVerificationError("Please enter a valid ICCID first.");
+      return;
+    }
+
+    setIsVerifying(true);
+    setVerificationError(null);
+    setVerificationDetails(null);
+
+    try {
+      const res = await axios.get(`${API_BASE}/admin/verify-iccid/${formData.iccid}`);
+      const details = res.data.details;
+      setVerificationDetails(details);
+
+      // Auto-Match Logic
+      if (details) {
+        // Try to match by name or properties
+        // Vendor details structure depends on what `esimVendorService` returns.
+        // Assuming details has `package_label` or similar from the vendor order info.
+        // Or if the backend passes `iccid` details which often contains `bundle` information.
+
+        // Strategy: Match if package name or region matches vendor data
+        // This is a fuzzy match.
+        const vendorDesc = JSON.stringify(details).toLowerCase();
+
+        const matchedPkg = packages.find(p =>
+          vendorDesc.includes(p.name.toLowerCase()) ||
+          (details.product_name && p.name.toLowerCase().includes(details.product_name.toLowerCase()))
+        );
+
+        if (matchedPkg) {
+          setFormData(prev => ({ ...prev, packageId: matchedPkg._id }));
+          // Also set activation code if available
+          if (details.activation_code) {
+            setFormData(prev => ({ ...prev, activationCode: details.activation_code }));
+          }
+          if (details.smp_address) {
+            // Sometimes validation is LDP:SMP
+            if (!details.activation_code) { // Only if not already set
+              setFormData(prev => ({ ...prev, activationCode: `LPA:1$${details.smp_address}$...` }));
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      setVerificationError(err.response?.data?.message || err.message || "Failed to verify ICCID");
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -180,104 +238,171 @@ const ESIMManagement: React.FC = () => {
               </div>
             ) : (
               <form onSubmit={handleIssueSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Partner Selection */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono text-slate-500 uppercase">Target Partner</label>
-                    <div className="relative">
-                      <select
-                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white appearance-none focus:outline-none focus:border-orange-500/50 transition-colors"
-                        value={formData.partnerId}
-                        onChange={(e) => setFormData({ ...formData, partnerId: e.target.value })}
-                        required
-                      >
-                        <option value="">Select Partner Account</option>
-                        {partners.filter(u => u.role === 'partner' || (u as any).role === 'partner').map(p => (
-                          <option key={p._id} value={p._id}>{p.companyName || p.username} ({p.email})</option>
-                        ))}
-                      </select>
-                      <User className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
-                    </div>
-                  </div>
+                <div className="lg:col-span-3 grid grid-cols-1 gap-6">
 
-                  {/* SEARCHABLE Package Selection */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono text-slate-500 uppercase">Package Plan</label>
-                    <div className="relative" ref={pkgDropdownRef}>
-                      <div
-                        onClick={() => setIsPkgDropdownOpen(!isPkgDropdownOpen)}
-                        className={`w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white cursor-pointer flex justify-between items-center transition-all hover:border-white/20 ${isPkgDropdownOpen ? 'border-orange-500/50' : ''}`}
-                      >
-                        <span className={selectedPackage ? "text-white" : "text-slate-500"}>
-                          {selectedPackage ? `${selectedPackage.name} - ${selectedPackage.region}` : "Select Package"}
-                        </span>
-                        <ChevronDown size={16} className={`text-slate-500 transition-transform ${isPkgDropdownOpen ? 'rotate-180' : ''}`} />
+                  {/* Step 1: Verification Section */}
+                  <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center text-xs font-bold">1</div>
+                      <h4 className="text-sm font-bold text-white uppercase tracking-wider">Verify Identity</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono text-slate-500 uppercase">ICCID</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white font-mono focus:outline-none focus:border-orange-500/50 transition-colors"
+                            placeholder="89..."
+                            value={formData.iccid}
+                            onChange={(e) => setFormData({ ...formData, iccid: e.target.value })}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={verifyICCID}
+                            disabled={isVerifying || !formData.iccid}
+                            className="px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isVerifying ? <RefreshCw className="animate-spin" size={18} /> : "Verify"}
+                          </button>
+                        </div>
                       </div>
 
-                      {isPkgDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#1c1c1c] border border-white/10 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                          <div className="p-2 border-b border-white/5 bg-black/20">
-                            <div className="relative">
-                              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                              <input
-                                type="text"
-                                autoFocus
-                                value={pkgSearch}
-                                onChange={(e) => setPkgSearch(e.target.value)}
-                                placeholder="Quick search package..."
-                                className="w-full bg-black/20 border border-white/5 rounded-lg py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-orange-500/30"
-                              />
-                            </div>
+                      {/* Verification Status Card */}
+                      {verificationDetails && (
+                        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 animate-in fade-in zoom-in duration-300">
+                          <div className="flex items-center gap-2 text-green-400 mb-2">
+                            <Check size={16} />
+                            <span className="text-xs font-bold uppercase">Verified Live</span>
                           </div>
-                          <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                            {filteredPackages.length === 0 ? (
-                              <div className="p-4 text-center text-slate-500 text-xs">No matching packages</div>
-                            ) : (
-                              filteredPackages.map(pkg => (
-                                <div
-                                  key={pkg._id}
-                                  onClick={() => {
-                                    setFormData({ ...formData, packageId: pkg._id });
-                                    setIsPkgDropdownOpen(false);
-                                  }}
-                                  className={`p-3 text-sm cursor-pointer hover:bg-orange-500/10 flex justify-between items-center transition-colors ${formData.packageId === pkg._id ? 'bg-orange-500/5 text-orange-400' : 'text-slate-300'}`}
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{pkg.name}</span>
-                                    <span className="text-[10px] text-slate-500">{pkg.region}</span>
-                                  </div>
-                                  {formData.packageId === pkg._id && <Check size={14} />}
-                                </div>
-                              ))
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex flex-col">
+                              <span className="text-slate-500">Status</span>
+                              <span className="text-white font-medium">{verificationDetails.status || 'Active'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-slate-500">Bundle</span>
+                              <span className="text-white font-medium truncate" title={verificationDetails.product_name || verificationDetails.package_label}>
+                                {verificationDetails.product_name || verificationDetails.package_label || 'Unknown'}
+                              </span>
+                            </div>
+                            {verificationDetails.balance && (
+                              <div className="col-span-2 mt-1 pt-1 border-t border-green-500/20 flex justify-between">
+                                <span className="text-slate-500">Data Balance</span>
+                                <span className="text-white font-mono">{JSON.stringify(verificationDetails.balance)}</span>
+                              </div>
                             )}
                           </div>
+                        </div>
+                      )}
+
+                      {verificationError && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3 text-red-400 animate-in fade-in slide-in-from-left-2">
+                          <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                          <p className="text-xs leading-relaxed">{verificationError}</p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono text-slate-500 uppercase">ICCID</label>
-                    <input
-                      type="text"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white font-mono focus:outline-none focus:border-orange-500/50 transition-colors"
-                      placeholder="89..."
-                      value={formData.iccid}
-                      onChange={(e) => setFormData({ ...formData, iccid: e.target.value })}
-                      required
-                    />
-                  </div>
+                  {/* Step 2: Assignment Details (Only show if needed or always show but disabled?) -> User flow implies linear. I'll keep it open but emphasize flow. */}
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono text-slate-500 uppercase">Activation Code (LPA)</label>
-                    <input
-                      type="text"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white font-mono focus:outline-none focus:border-orange-500/50 transition-colors"
-                      placeholder="LPA:1$..."
-                      value={formData.activationCode}
-                      onChange={(e) => setFormData({ ...formData, activationCode: e.target.value })}
-                      required
-                    />
+                  <div className={`space-y-4 transition-opacity duration-300 ${verificationDetails ? 'opacity-100' : 'opacity-50'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-white/10 text-slate-300 flex items-center justify-center text-xs font-bold">2</div>
+                      <h4 className="text-sm font-bold text-white uppercase tracking-wider">Assign Package</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* SEARCHABLE Package Selection */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono text-slate-500 uppercase">Package Plan</label>
+                        <div className="relative" ref={pkgDropdownRef}>
+                          <div
+                            onClick={() => setIsPkgDropdownOpen(!isPkgDropdownOpen)}
+                            className={`w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white cursor-pointer flex justify-between items-center transition-all hover:border-white/20 ${isPkgDropdownOpen ? 'border-orange-500/50' : ''}`}
+                          >
+                            <span className={selectedPackage ? "text-white" : "text-slate-500"}>
+                              {selectedPackage ? `${selectedPackage.name} - ${selectedPackage.region}` : "Select Package"}
+                            </span>
+                            <ChevronDown size={16} className={`text-slate-500 transition-transform ${isPkgDropdownOpen ? 'rotate-180' : ''}`} />
+                          </div>
+
+                          {isPkgDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-[#1c1c1c] border border-white/10 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                              <div className="p-2 border-b border-white/5 bg-black/20">
+                                <div className="relative">
+                                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    value={pkgSearch}
+                                    onChange={(e) => setPkgSearch(e.target.value)}
+                                    placeholder="Quick search package..."
+                                    className="w-full bg-black/20 border border-white/5 rounded-lg py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-orange-500/30"
+                                  />
+                                </div>
+                              </div>
+                              <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                {filteredPackages.length === 0 ? (
+                                  <div className="p-4 text-center text-slate-500 text-xs">No matching packages</div>
+                                ) : (
+                                  filteredPackages.map(pkg => (
+                                    <div
+                                      key={pkg._id}
+                                      onClick={() => {
+                                        setFormData({ ...formData, packageId: pkg._id });
+                                        setIsPkgDropdownOpen(false);
+                                      }}
+                                      className={`p-3 text-sm cursor-pointer hover:bg-orange-500/10 flex justify-between items-center transition-colors ${formData.packageId === pkg._id ? 'bg-orange-500/5 text-orange-400' : 'text-slate-300'}`}
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{pkg.name}</span>
+                                        <span className="text-[10px] text-slate-500">{pkg.region}</span>
+                                      </div>
+                                      {formData.packageId === pkg._id && <Check size={14} />}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Partner Selection */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono text-slate-500 uppercase">Target Partner</label>
+                        <div className="relative">
+                          <select
+                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white appearance-none focus:outline-none focus:border-orange-500/50 transition-colors"
+                            value={formData.partnerId}
+                            onChange={(e) => setFormData({ ...formData, partnerId: e.target.value })}
+                            required
+                          >
+                            <option value="">Select Partner Account</option>
+                            {partners.filter(u => u.role === 'partner' || (u as any).role === 'partner').map(p => (
+                              <option key={p._id} value={p._id}>{p.companyName || p.username} ({p.email})</option>
+                            ))}
+                          </select>
+                          <User className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono text-slate-500 uppercase">Activation Code (LPA)</label>
+                        <input
+                          type="text"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white font-mono focus:outline-none focus:border-orange-500/50 transition-colors"
+                          placeholder="LPA:1$..."
+                          value={formData.activationCode}
+                          onChange={(e) => setFormData({ ...formData, activationCode: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
