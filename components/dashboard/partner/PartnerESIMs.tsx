@@ -211,7 +211,7 @@ const PartnerESIMs: React.FC = () => {
               ) : (
                 <form onSubmit={handleAssign} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-mono text-slate-500 uppercase">Employee Name</label>
+                    <label className="text-xs font-mono text-slate-500 uppercase">User Name</label>
                     <input
                       required
                       type="text"
@@ -228,7 +228,7 @@ const PartnerESIMs: React.FC = () => {
                       <input
                         required
                         type="email"
-                        placeholder="employee@company.com"
+                        placeholder="user@domain.com"
                         value={assignmentData.email}
                         onChange={(e) => setAssignmentData({ ...assignmentData, email: e.target.value })}
                         className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500/50"
