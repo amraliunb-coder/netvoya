@@ -111,28 +111,52 @@ const Packages: React.FC = () => {
     }, []);
 
     return (
-        <div className="space-y-8 animate-in-view">
+        <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-display font-bold text-white">eSIM Product Mapping</h2>
                     <p className="text-slate-500 text-sm">Control mapping between vendor packages and our retail prices.</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    {balance !== null && (
-                        <div className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${balance < 10 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-green-500/10 border-green-500/20 text-green-500'}`}>
-                            <DollarSign size={16} />
-                            <span className="text-sm font-bold">Balance: ${balance.toFixed(2)}</span>
-                            {balance < 10 && <AlertCircle size={14} className="animate-pulse" />}
-                        </div>
-                    )}
-                    <button
-                        onClick={handleSync}
-                        disabled={syncing}
-                        className={`flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium transition-all hover:bg-orange-600 disabled:opacity-50`}
-                    >
-                        <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-                        {syncing ? 'Syncing...' : 'Sync with Vendor'}
-                    </button>
+                <div className="flex flex-col items-end gap-3">
+                    <div className="flex items-center gap-1 bg-[#171717] p-1 rounded-xl border border-white/10 w-fit">
+                        {[
+                            { id: 'all', label: 'All', count: packages.length },
+                            { id: 'live', label: 'Live', count: packages.filter(p => p.is_live).length },
+                            { id: 'draft', label: 'Draft', count: packages.filter(p => !p.is_live).length }
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setStatusFilter(tab.id as any)}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${statusFilter === tab.id
+                                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    }`}
+                            >
+                                {tab.label}
+                                <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${statusFilter === tab.id ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-600'
+                                    }`}>
+                                    {tab.count}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {balance !== null && (
+                            <div className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${balance < 10 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-green-500/10 border-green-500/20 text-green-500'}`}>
+                                <DollarSign size={16} />
+                                <span className="text-sm font-bold">Balance: ${balance.toFixed(2)}</span>
+                                {balance < 10 && <AlertCircle size={14} className="animate-pulse" />}
+                            </div>
+                        )}
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing}
+                            className={`flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium transition-all hover:bg-orange-600 disabled:opacity-50`}
+                        >
+                            <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+                            {syncing ? 'Syncing...' : 'Sync with Vendor'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -154,51 +178,24 @@ const Packages: React.FC = () => {
                 </div>
             )}
 
-            {/* Filters & Search */}
-            <div className="space-y-4">
-                <div className="flex items-center gap-1 bg-[#171717] p-1 rounded-xl border border-white/5 w-fit">
-                    {[
-                        { id: 'all', label: 'All Packages', count: packages.length },
-                        { id: 'live', label: 'Live', count: packages.filter(p => p.is_live).length },
-                        { id: 'draft', label: 'Draft', count: packages.filter(p => !p.is_live).length }
-                    ].map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setStatusFilter(tab.id as any)}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${statusFilter === tab.id
-                                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                                }`}
-                        >
-                            {tab.id === 'live' && <Eye size={14} />}
-                            {tab.id === 'draft' && <EyeOff size={14} />}
-                            {tab.label}
-                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${statusFilter === tab.id ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-600'
-                                }`}>
-                                {tab.count}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search by country, region, or package name..."
-                        className="w-full bg-[#171717] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
-                    />
-                    {searchTerm && (
-                        <button
-                            onClick={() => setSearchTerm('')}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                        >
-                            ✕
-                        </button>
-                    )}
-                </div>
+            {/* Search Bar */}
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by country, region, or package name..."
+                    className="w-full bg-[#171717] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
+                />
+                {searchTerm && (
+                    <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                    >
+                        ✕
+                    </button>
+                )}
             </div>
 
             {/* Results count when searching */}
