@@ -114,8 +114,8 @@ const Packages: React.FC = () => {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-display font-bold text-white">eSIM Product Mapping</h2>
-                    <p className="text-slate-500 text-sm">Control mapping between vendor packages and our retail prices.</p>
+                    <h2 className="text-2xl font-display font-bold text-white">Packages & Product Pricing</h2>
+                    <p className="text-slate-500 text-sm">Manage retail pricing and visibility for all eSIM products.</p>
                 </div>
                 <div className="flex flex-col items-end gap-3">
                     <div className="flex items-center gap-1 bg-[#171717] p-1 rounded-xl border border-white/10 w-fit">
@@ -128,8 +128,8 @@ const Packages: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setStatusFilter(tab.id as any)}
                                 className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${statusFilter === tab.id
-                                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                                     }`}
                             >
                                 {tab.label}
