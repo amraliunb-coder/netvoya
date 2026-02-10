@@ -33,12 +33,16 @@ const Packages: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'idle' | 'saving' | 'saved' }>({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'draft'>('all');
 
-    // Filter packages based on search term
-    const filteredPackages = packages.filter(pkg =>
-        pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pkg.region.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter packages based on search term and status
+    const filteredPackages = packages.filter(pkg => {
+        const matchesSearch = pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            pkg.region.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'all' ? true :
+            statusFilter === 'live' ? pkg.is_live : !pkg.is_live;
+        return matchesSearch && matchesStatus;
+    });
 
     const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -150,24 +154,51 @@ const Packages: React.FC = () => {
                 </div>
             )}
 
-            {/* Search Bar */}
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by country, region, or package name..."
-                    className="w-full bg-[#171717] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
-                />
-                {searchTerm && (
-                    <button
-                        onClick={() => setSearchTerm('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                    >
-                        ✕
-                    </button>
-                )}
+            {/* Filters & Search */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-1 bg-[#171717] p-1 rounded-xl border border-white/5 w-fit">
+                    {[
+                        { id: 'all', label: 'All Packages', count: packages.length },
+                        { id: 'live', label: 'Live', count: packages.filter(p => p.is_live).length },
+                        { id: 'draft', label: 'Draft', count: packages.filter(p => !p.is_live).length }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setStatusFilter(tab.id as any)}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${statusFilter === tab.id
+                                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                }`}
+                        >
+                            {tab.id === 'live' && <Eye size={14} />}
+                            {tab.id === 'draft' && <EyeOff size={14} />}
+                            {tab.label}
+                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${statusFilter === tab.id ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-600'
+                                }`}>
+                                {tab.count}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search by country, region, or package name..."
+                        className="w-full bg-[#171717] border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
+                    />
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Results count when searching */}
