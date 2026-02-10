@@ -23,6 +23,7 @@ import SettingsView from './dashboard/Settings';
 import PartnerOverview from './dashboard/partner/PartnerOverview';
 import PartnerESIMs from './dashboard/partner/PartnerESIMs';
 import RequestInventory from './dashboard/partner/RequestInventory';
+import NotificationCenter from './dashboard/NotificationCenter';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -180,10 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
               />
             </div>
 
-            <button className="relative p-2 text-slate-400 hover:text-white transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-2 w-2 h-2 bg-orange-500 rounded-full border border-black"></span>
-            </button>
+            <NotificationCenter />
 
             <div className="h-8 w-px bg-white/10 mx-2"></div>
 
