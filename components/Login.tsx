@@ -27,10 +27,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
     try {
       // API Login
       const response = await loginUser({ email, password });
-      
+
       // Determine role from response or default to partner
       const role = (response.user?.role as 'admin' | 'partner') || 'partner';
-      
+
+      // Save session
+      localStorage.setItem('token', response.token || '');
+      localStorage.setItem('user', JSON.stringify(response.user));
+
       onLogin(role);
     } catch (err: any) {
       if (err instanceof ApiError) {
@@ -51,7 +55,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
 
       {/* Header */}
       <div className="p-6 relative z-10">
-        <button 
+        <button
           onClick={onBack}
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
           disabled={loading}
@@ -64,13 +68,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
         <div className="w-full max-w-md bg-[#171717]/80 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
           <div className="flex justify-center mb-8">
-            <img 
-              src="https://res.cloudinary.com/drzid08rg/image/upload/d91fcd24-8cf6-4adf-b9df-7312622185a8_ihpxqo.png" 
-              alt="NetVoya" 
+            <img
+              src="https://res.cloudinary.com/drzid08rg/image/upload/d91fcd24-8cf6-4adf-b9df-7312622185a8_ihpxqo.png"
+              alt="NetVoya"
               className="h-16 w-auto object-contain"
             />
           </div>
-          
+
           <h2 className="text-2xl font-display font-bold text-white text-center mb-2">Welcome Back</h2>
           <p className="text-slate-500 text-center mb-8 text-sm">Sign in to manage your eSIM inventory.</p>
 
@@ -79,8 +83,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
               <label className="text-xs font-mono uppercase text-slate-500">Username or Email</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-black/50 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-all"
@@ -94,8 +98,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
               <label className="text-xs font-mono uppercase text-slate-500">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-black/50 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-all"
@@ -111,7 +115,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
               </div>
             )}
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] disabled:opacity-50 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
@@ -122,7 +126,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-slate-500">
-               Don't have an account? <span className="text-orange-500 cursor-pointer hover:underline" onClick={onBack}>Register</span>
+              Don't have an account? <span className="text-orange-500 cursor-pointer hover:underline" onClick={onBack}>Register</span>
             </p>
           </div>
         </div>

@@ -25,32 +25,64 @@ interface Activation {
 }
 
 const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
-  const totalTokens = 5000;
-  const activeTokens = 1240;
-  const availableTokens = totalTokens - activeTokens;
-  const usagePercentage = (activeTokens / totalTokens) * 100;
+  const [stats, setStats] = useState({
+    totalTokens: 0,
+    activeTokens: 0,
+    availableTokens: 0
+  });
 
   const [activations, setActivations] = useState<Activation[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+  const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
   useEffect(() => {
-    const fetchActivations = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API_BASE}/partner/activations`);
-        if (res.data.success) {
-          setActivations(res.data.activations);
+        // Get User ID from localStorage
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const partnerId = user?.id;
+
+        // 1. Fetch Inventory for Stats
+        const inventoryRes = await axios.get(`${API_BASE}/inventory`, {
+          params: { partner_id: partnerId }
+        });
+
+        if (inventoryRes.data.success) {
+          const buckets: any[] = inventoryRes.data.buckets || [];
+          const total = buckets.reduce((acc, b) => acc + (b.total_purchased || 0), 0);
+          const active = buckets.reduce((acc, b) => acc + (b.assigned_count || 0), 0);
+          const available = buckets.reduce((acc, b) => acc + (b.available_count || 0), 0);
+
+          setStats({
+            totalTokens: total,
+            activeTokens: active,
+            availableTokens: available
+          });
+        }
+
+        // 2. Fetch Recent Activations
+        const actRes = await axios.get(`${API_BASE}/partner/activations`, {
+          params: { partner_id: partnerId }
+        });
+
+        if (actRes.data.success) {
+          setActivations(actRes.data.activations);
         }
       } catch (err) {
-        console.error("Failed to load activations", err);
+        console.error("Failed to load dashboard data", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchActivations();
+
+    fetchDashboardData();
   }, []);
+
+  const { totalTokens, activeTokens, availableTokens } = stats;
+  const usagePercentage = totalTokens > 0 ? (activeTokens / totalTokens) * 100 : 0;
 
   return (
     <div className="space-y-8 animate-in-view">

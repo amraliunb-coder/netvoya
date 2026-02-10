@@ -39,7 +39,15 @@ const PartnerESIMs: React.FC = () => {
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/inventory`);
+
+      // Get User ID from localStorage
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const partnerId = user?.id;
+
+      const response = await axios.get(`${API_BASE}/inventory`, {
+        params: { partner_id: partnerId }
+      });
       setBuckets(response.data.buckets);
     } catch (err: any) {
       setError('Failed to fetch inventory.');
