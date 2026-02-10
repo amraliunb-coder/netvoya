@@ -33,6 +33,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Get user info from localStorage
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const displayName = role === 'admin'
+    ? 'Karim El Sharaany'
+    : (user?.firstName || user?.companyName || 'Partner Account');
+  const displayCompany = role === 'admin'
+    ? 'admin'
+    : (user?.companyName || 'partner');
+  const initials = role === 'admin'
+    ? 'KS'
+    : (user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'P') +
+    (user?.companyName ? user.companyName.charAt(0).toUpperCase() : 'A');
+
   // Define menu items based on role
   const adminMenuItems = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
@@ -176,12 +190,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
             <div className="flex items-center gap-3">
               <div className="text-right hidden md:block">
                 <div className="text-sm font-medium text-white">
-                  {role === 'admin' ? 'Karim El Sharaany' : 'Partner Account'}
+                  {displayName}
                 </div>
-                <div className="text-xs text-slate-500 capitalize">{role}</div>
+                <div className="text-xs text-slate-500 capitalize">{displayCompany}</div>
               </div>
               <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-500 font-bold">
-                {role === 'admin' ? 'KS' : 'PA'}
+                {initials}
               </div>
             </div>
           </div>
