@@ -88,6 +88,28 @@ export const loginUser = async (data: LoginData): Promise<ApiResponse> => {
 };
 
 /**
+ * Updates a user's password
+ */
+export const changePassword = async (data: { userId: string, currentPassword: string, newPassword: string }): Promise<ApiResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/change-password`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    return await handleResponse(response);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError("Connection failed. Please check your internet connection.", 0);
+  }
+};
+
+/**
  * TEST UTILS:
  * To test without a backend, uncomment the code blocks below inside the functions
  * and comment out the fetch calls.

@@ -46,6 +46,9 @@ export interface ApiResponse {
     username: string;
     email: string;
     role: string;
+    firstName?: string;
+    companyName?: string;
+    requiresPasswordChange?: boolean;
   };
   token?: string;
 }

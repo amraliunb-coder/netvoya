@@ -127,115 +127,178 @@ const SettingsView: React.FC = () => {
         <p className="text-slate-500 text-sm">Manage API keys, webhooks, and account preferences.</p>
       </div>
 
-      {/* API Configuration */}
+      {/* Webhook Configuration Section (Existing) */}
       <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
         <div className="p-6 border-b border-white/5 bg-white/[0.02]">
           <h3 className="font-bold text-white flex items-center gap-2">
-            <Key size={18} className="text-orange-500" />
-            API Configuration
+            <Webhook size={18} className="text-orange-500" />
+            Webhook Endpoints
           </h3>
-          <p className="text-slate-500 text-xs mt-1">Use this key to authenticate requests from your application.</p>
+          <p className="text-slate-500 text-xs mt-1">Configure URLs to receive real-time notifications from the platform.</p>
         </div>
-
         <div className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Live Secret Key</label>
-
-            {!hasApiKey ? (
-              <div className="bg-black/30 border border-dashed border-white/10 rounded-xl p-6 text-center">
-                <ShieldAlert size={32} className="mx-auto text-slate-600 mb-3" />
-                <p className="text-slate-400 text-sm mb-4">No API key generated yet. Click below to create one.</p>
-                <button
-                  onClick={handleGenerateKey}
-                  disabled={generating}
-                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all shadow-lg shadow-orange-500/20 flex items-center gap-2 mx-auto disabled:opacity-50"
-                >
-                  {generating ? <RefreshCw className="animate-spin" size={16} /> : <Key size={16} />}
-                  Generate API Key
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <input
-                      type={showKey ? "text" : "password"}
-                      value={apiKey}
-                      readOnly
-                      className="w-full bg-black/50 border border-white/10 rounded-lg py-3 pl-4 pr-12 text-slate-300 font-mono text-sm focus:outline-none focus:border-orange-500/50"
-                    />
-                    <button
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                    >
-                      {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  <button
-                    onClick={handleCopy}
-                    className="bg-white/5 hover:bg-white/10 text-white px-4 rounded-lg flex items-center gap-2 transition-colors border border-white/5"
-                  >
-                    {copied ? <CheckCircle2 size={18} className="text-green-400" /> : <Copy size={18} />}
-                    {copied ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-
-                {justGenerated && (
-                  <div className="mt-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-3">
-                    <AlertCircle size={16} className="text-yellow-500 shrink-0 mt-0.5" />
-                    <p className="text-yellow-200 text-xs">Save this key now. For security, the full key will only be shown this once.</p>
-                  </div>
-                )}
-
-                <div className="mt-4">
-                  <button
-                    onClick={handleGenerateKey}
-                    disabled={generating}
-                    className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw size={12} className={generating ? 'animate-spin' : ''} />
-                    Regenerate API Key
-                  </button>
-                  <p className="text-xs text-slate-500 mt-1">Regenerating will invalidate the existing key immediately.</p>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="pt-6 border-t border-white/5">
-            <h4 className="font-medium text-white mb-4 flex items-center gap-2">
-              <Webhook size={16} className="text-orange-500" />
-              Webhook Endpoints
-            </h4>
-            <div className="space-y-4">
-              <div className="flex gap-4 items-start">
-                <div className="flex-1">
-                  <label className="block text-xs uppercase text-slate-500 font-mono mb-1">Order Status Updated</label>
-                  <input
-                    type="text"
-                    placeholder="https://your-domain.com/webhooks/netvoya"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg py-2 px-4 text-white text-sm focus:outline-none focus:border-orange-500/50"
-                  />
-                </div>
-              </div>
+            <label className="block text-xs uppercase text-slate-500 font-mono mb-2">Order Status Updated</label>
+            <div className="flex gap-4">
+              <input
+                type="text"
+                placeholder="https://your-domain.com/webhooks/netvoya"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                className="flex-1 bg-black/50 border border-white/10 rounded-lg py-3 px-4 text-white text-sm focus:outline-none focus:border-orange-500/50"
+              />
+              <button
+                onClick={handleSaveWebhook}
+                disabled={saving}
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-lg transition-colors border border-white/5 disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? <RefreshCw className="animate-spin" size={14} /> : null}
+                Save Webhook
+              </button>
             </div>
+            {saveSuccess && <p className="text-green-400 text-[10px] mt-2 flex items-center gap-1 animate-fade-in"><CheckCircle2 size={12} /> Webhook URL saved successfully!</p>}
           </div>
-        </div>
-        <div className="p-4 bg-white/[0.02] border-t border-white/5 flex justify-end items-center gap-3">
-          {saveSuccess && <span className="text-green-400 text-xs flex items-center gap-1"><CheckCircle2 size={14} /> Saved!</span>}
-          <button
-            onClick={handleSaveWebhook}
-            disabled={saving}
-            className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-orange-500/20 disabled:opacity-50 flex items-center gap-2"
-          >
-            {saving ? <RefreshCw className="animate-spin" size={14} /> : null}
-            Save Changes
-          </button>
         </div>
       </div>
 
+      {/* Password & Security Section */}
+      <PasswordChangeSection />
+
+    </div>
+  );
+};
+
+// Extracted Password Change Component for clarity
+const PasswordChangeSection: React.FC = () => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userId = user?.id;
+
+    if (!userId) {
+      setError('User session expired. Please login again.');
+      return;
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError('All fields are required.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match.');
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
+      const res = await axios.patch(`${API_BASE}/user/change-password`, {
+        userId,
+        currentPassword,
+        newPassword
+      });
+
+      if (res.data.success) {
+        setSuccess(true);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        // Alert the user that they should keep their new password safe
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update password.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
+      <div className="p-6 border-b border-white/5 bg-white/[0.02]">
+        <h3 className="font-bold text-white flex items-center gap-2">
+          <ShieldAlert size={18} className="text-orange-500" />
+          Password & Security
+        </h3>
+        <p className="text-slate-500 text-sm mt-1">Update your login credentials to keep your account secure.</p>
+      </div>
+
+      <div className="p-6">
+        <form onSubmit={handleUpdatePassword} className="space-y-6 max-w-md">
+          <div className="space-y-2">
+            <label className="text-xs font-mono uppercase text-slate-500">Current Password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full bg-black/50 border border-white/10 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-orange-500/50"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase text-slate-500">New Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-orange-500/50"
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase text-slate-500">Confirm New</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-orange-500/50"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 text-red-400 text-xs bg-red-400/10 p-3 rounded-lg border border-red-400/20">
+              <AlertCircle size={14} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="flex items-center gap-2 text-green-400 text-xs bg-green-400/10 p-3 rounded-lg border border-green-400/20">
+              <CheckCircle2 size={14} className="shrink-0" />
+              <span>Password updated successfully!</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={updating}
+            className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50 flex items-center gap-2"
+          >
+            {updating ? <RefreshCw className="animate-spin" size={16} /> : <ShieldAlert size={16} />}
+            {updating ? 'Updating...' : 'Update Password'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
