@@ -112,51 +112,63 @@ const Packages: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
                 <div>
-                    <h2 className="text-2xl font-display font-bold text-white">Packages & Product Pricing</h2>
+                    <h2 className="text-2xl font-display font-bold text-white tracking-tight">Packages & Product Pricing <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-500 uppercase tracking-widest font-mono align-middle">v2.0</span></h2>
                     <p className="text-slate-500 text-sm">Manage retail pricing and visibility for all eSIM products.</p>
                 </div>
-                <div className="flex flex-col items-end gap-3">
-                    <div className="flex items-center gap-1 bg-[#171717] p-1 rounded-xl border border-white/10 w-fit">
-                        {[
-                            { id: 'all', label: 'All', count: packages.length },
-                            { id: 'live', label: 'Live', count: packages.filter(p => p.is_live).length },
-                            { id: 'draft', label: 'Draft', count: packages.filter(p => !p.is_live).length }
-                        ].map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setStatusFilter(tab.id as any)}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${statusFilter === tab.id
-                                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                                    }`}
-                            >
-                                {tab.label}
-                                <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${statusFilter === tab.id ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-600'
-                                    }`}>
-                                    {tab.count}
-                                </span>
-                            </button>
-                        ))}
+                <div className="flex items-center gap-4">
+                    {balance !== null && (
+                        <div className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${balance < 10 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-green-500/10 border-green-500/20 text-green-500'}`}>
+                            <DollarSign size={16} />
+                            <span className="text-sm font-bold">Balance: ${balance.toFixed(2)}</span>
+                            {balance < 10 && <AlertCircle size={14} className="animate-pulse" />}
+                        </div>
+                    )}
+                    <button
+                        onClick={handleSync}
+                        disabled={syncing}
+                        className={`flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium transition-all hover:bg-orange-600 disabled:opacity-50 shadow-lg shadow-orange-500/20`}
+                    >
+                        <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+                        {syncing ? 'Syncing...' : 'Sync with Vendor'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Status Filter Toggle - Full Width Block */}
+            <div className="bg-[#171717] border border-white/10 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-black/20">
+                <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-orange-500/10 rounded-xl text-orange-500 border border-orange-500/20">
+                        <Filter size={20} />
                     </div>
-                    <div className="flex items-center gap-4">
-                        {balance !== null && (
-                            <div className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${balance < 10 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-green-500/10 border-green-500/20 text-green-500'}`}>
-                                <DollarSign size={16} />
-                                <span className="text-sm font-bold">Balance: ${balance.toFixed(2)}</span>
-                                {balance < 10 && <AlertCircle size={14} className="animate-pulse" />}
-                            </div>
-                        )}
+                    <div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">Quick Filter</h3>
+                        <p className="text-xs text-slate-500 font-medium">Toggle visibility based on package status</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-black/40 p-1.5 rounded-xl border border-white/5">
+                    {[
+                        { id: 'all', label: 'All Packages', count: packages.length },
+                        { id: 'live', label: 'Live (Visible)', count: packages.filter(p => p.is_live).length },
+                        { id: 'draft', label: 'Draft (Internal)', count: packages.filter(p => !p.is_live).length }
+                    ].map((tab) => (
                         <button
-                            onClick={handleSync}
-                            disabled={syncing}
-                            className={`flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium transition-all hover:bg-orange-600 disabled:opacity-50`}
+                            key={tab.id}
+                            onClick={() => setStatusFilter(tab.id as any)}
+                            className={`px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-3 ${statusFilter === tab.id
+                                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                }`}
                         >
-                            <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-                            {syncing ? 'Syncing...' : 'Sync with Vendor'}
+                            {tab.label}
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] ${statusFilter === tab.id ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-700'
+                                }`}>
+                                {tab.count}
+                            </span>
                         </button>
-                    </div>
+                    ))}
                 </div>
             </div>
 
@@ -168,15 +180,17 @@ const Packages: React.FC = () => {
                 </div>
             )}
 
-            {balance !== null && balance < 10 && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex gap-4">
-                    <AlertCircle className="text-red-500 shrink-0" size={20} />
-                    <div className="text-sm text-red-200">
-                        <p className="font-bold mb-1">Low Vendor Balance Warning!</p>
-                        <p className="text-red-300/80">Your vendor balance is below $10.00. Customers will see a "Service Temporarily Unavailable" error if the balance hits $0.00. Please top up your account.</p>
+            {
+                balance !== null && balance < 10 && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex gap-4">
+                        <AlertCircle className="text-red-500 shrink-0" size={20} />
+                        <div className="text-sm text-red-200">
+                            <p className="font-bold mb-1">Low Vendor Balance Warning!</p>
+                            <p className="text-red-300/80">Your vendor balance is below $10.00. Customers will see a "Service Temporarily Unavailable" error if the balance hits $0.00. Please top up your account.</p>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Search Bar */}
             <div className="relative">
@@ -199,11 +213,13 @@ const Packages: React.FC = () => {
             </div>
 
             {/* Results count when searching */}
-            {searchTerm && (
-                <div className="text-sm text-slate-500">
-                    Showing <span className="text-white font-medium">{filteredPackages.length}</span> of <span className="text-white font-medium">{packages.length}</span> packages
-                </div>
-            )}
+            {
+                searchTerm && (
+                    <div className="text-sm text-slate-500">
+                        Showing <span className="text-white font-medium">{filteredPackages.length}</span> of <span className="text-white font-medium">{packages.length}</span> packages
+                    </div>
+                )
+            }
 
             <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
@@ -306,7 +322,7 @@ const Packages: React.FC = () => {
                     <p className="text-slate-400">The wholesale cost is updated automatically via the background sync worker. If a vendor price increase reduces your margin below 0%, the package will be flagged in red. New packages always start as <strong>Draft</strong> and must be manually toggled to <strong>Live</strong>.</p>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
