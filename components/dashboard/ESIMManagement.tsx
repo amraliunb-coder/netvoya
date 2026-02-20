@@ -57,6 +57,7 @@ const ESIMManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [partnerFilter, setPartnerFilter] = useState('');
 
   // Form State
   const [partners, setPartners] = useState<User[]>([]);
@@ -103,8 +104,11 @@ const ESIMManagement: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const urlParams = new URLSearchParams();
+      if (partnerFilter) urlParams.append('partnerId', partnerFilter);
+
       const [profilesResp, usersResp, pkgsResp] = await Promise.all([
-        axios.get(`${API_BASE}/admin/profiles`),
+        axios.get(`${API_BASE}/admin/profiles?${urlParams.toString()}`),
         axios.get(`${API_BASE}/users`),
         axios.get(`${API_BASE}/packages?admin=true`)
       ]);
@@ -122,7 +126,9 @@ const ESIMManagement: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+  }, [partnerFilter]);
 
+  useEffect(() => {
     // Close dropdown on click outside
     const handleClickOutside = (event: MouseEvent) => {
       if (pkgDropdownRef.current && !pkgDropdownRef.current.contains(event.target as Node)) {
@@ -827,11 +833,20 @@ const ESIMManagement: React.FC = () => {
               />
             </div>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button className="flex items-center gap-2 px-3 py-2 bg-white/5 text-slate-300 rounded-lg text-xs hover:bg-white/10 transition-colors">
-              <Filter size={14} />
-              Filter
-            </button>
+          <div className="flex gap-2 w-full sm:w-auto items-center">
+            <div className="relative">
+              <select
+                value={partnerFilter}
+                onChange={(e) => setPartnerFilter(e.target.value)}
+                className="appearance-none bg-black/30 border border-white/10 rounded-lg py-2 pl-3 pr-8 text-xs text-white focus:outline-none focus:border-orange-500/50"
+              >
+                <option value="">All Partners</option>
+                {partners.filter(u => (u as any).role === 'partner').map(p => (
+                  <option key={p._id} value={p._id}>{p.companyName || p.username}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={14} />
+            </div>
             <button className="flex items-center gap-2 px-3 py-2 bg-white/5 text-slate-300 rounded-lg text-xs hover:bg-white/10 transition-colors">
               <Download size={14} />
               Export
