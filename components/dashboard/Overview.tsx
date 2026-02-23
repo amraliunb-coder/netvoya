@@ -10,7 +10,8 @@ import {
   Plus,
   MoreHorizontal,
   RefreshCw,
-  Inbox
+  Inbox,
+  ChevronDown
 } from 'lucide-react';
 
 interface OverviewProps {
@@ -55,6 +56,7 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
 
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const fetchRecentOrders = async () => {
     try {
@@ -67,6 +69,21 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
       console.error('Failed to fetch recent orders:', err);
     } finally {
       setLoadingOrders(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      setUpdatingId(orderId);
+      await axios.patch(`${API_BASE}/admin/orders/${orderId}/status`, { status: newStatus });
+      // Update local state immediately
+      setRecentOrders(prev =>
+        prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
+      );
+    } catch (err) {
+      console.error('Failed to update order status:', err);
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -235,10 +252,20 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
                     <td className="px-6 py-4 text-slate-400">{order.plan}</td>
                     <td className="px-6 py-4 text-white font-medium">{order.amount}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[order.status] || 'bg-slate-400/10 text-slate-400'
-                        }`}>
-                        {order.status}
-                      </span>
+                      <div className="relative inline-flex">
+                        <select
+                          value={order.status}
+                          onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                          disabled={updatingId === order.id}
+                          className={`appearance-none cursor-pointer inline-flex items-center pl-2.5 pr-7 py-0.5 rounded-full text-xs font-medium border-0 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all ${STATUS_STYLES[order.status] || 'bg-slate-400/10 text-slate-400'} ${updatingId === order.id ? 'opacity-50' : ''}`}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-slate-500">{timeAgo(order.date)}</td>
                     <td className="px-6 py-4 text-right">
