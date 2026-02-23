@@ -252,19 +252,24 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
                     <td className="px-6 py-4 text-slate-400">{order.plan}</td>
                     <td className="px-6 py-4 text-white font-medium">{order.amount}</td>
                     <td className="px-6 py-4">
-                      <div className="relative inline-flex group">
+                      <div className="relative inline-flex">
                         <select
                           value={order.status}
                           onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                           disabled={updatingId === order.id}
-                          className={`cursor-pointer inline-flex items-center pl-3 pr-8 py-1 rounded-full text-xs font-medium border border-transparent focus:outline-none focus:border-orange-500/50 hover:border-white/20 transition-all ${STATUS_STYLES[order.status] || 'bg-slate-400/10 text-slate-400'} ${updatingId === order.id ? 'opacity-50' : ''}`}
+                          className={`appearance-none cursor-pointer inline-flex items-center pl-3 pr-8 py-1 rounded-full text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all ${order.status === 'Completed' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                              order.status === 'Processing' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                                order.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                                  order.status === 'Cancelled' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                                    'bg-slate-500/20 text-slate-400 border-slate-500/30'
+                            } ${updatingId === order.id ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-125'}`}
                         >
-                          <option value="Pending" className="bg-[#1c1c1c] text-white">Pending</option>
-                          <option value="Processing" className="bg-[#1c1c1c] text-white">Processing</option>
-                          <option value="Completed" className="bg-[#1c1c1c] text-white">Completed</option>
-                          <option value="Cancelled" className="bg-[#1c1c1c] text-white">Cancelled</option>
+                          <option value="Pending" className="bg-[#1c1c1c] text-yellow-400">Pending</option>
+                          <option value="Processing" className="bg-[#1c1c1c] text-blue-400">Processing</option>
+                          <option value="Completed" className="bg-[#1c1c1c] text-green-400">Completed</option>
+                          <option value="Cancelled" className="bg-[#1c1c1c] text-red-400">Cancelled</option>
                         </select>
-                        <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <ChevronDown size={14} className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none transition-opacity ${updatingId === order.id ? 'opacity-30' : 'opacity-70'}`} />
                       </div>
                     </td>
                     <td className="px-6 py-4 text-slate-500">{timeAgo(order.date)}</td>
