@@ -1,20 +1,79 @@
-import React from 'react';
-import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Smartphone, 
-  Users, 
-  CreditCard, 
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Smartphone,
+  Users,
+  CreditCard,
   Activity,
   Plus,
-  MoreHorizontal
+  MoreHorizontal,
+  RefreshCw,
+  Inbox
 } from 'lucide-react';
 
 interface OverviewProps {
   setActiveTab: (tab: string) => void;
 }
 
+interface RecentOrder {
+  id: string;
+  client: string;
+  plan: string;
+  amount: string;
+  status: string;
+  date: string;
+}
+
+// Format a date string as a relative "time ago" label
+function timeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 60) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  Completed: 'bg-green-400/10 text-green-400',
+  Processing: 'bg-blue-400/10 text-blue-400',
+  Pending: 'bg-yellow-400/10 text-yellow-400',
+  Cancelled: 'bg-red-400/10 text-red-400',
+};
+
 const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
+  const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
+
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+
+  const fetchRecentOrders = async () => {
+    try {
+      setLoadingOrders(true);
+      const res = await axios.get(`${API_BASE}/admin/recent-orders`);
+      if (res.data.success) {
+        setRecentOrders(res.data.orders);
+      }
+    } catch (err) {
+      console.error('Failed to fetch recent orders:', err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentOrders();
+  }, []);
+
   const stats = [
     { label: "Active eSIMs", value: "1,248", change: "+12.5%", trend: "up", icon: <Smartphone className="text-orange-500" size={24} /> },
     { label: "Total Revenue", value: "$48,290", change: "+8.2%", trend: "up", icon: <CreditCard className="text-orange-500" size={24} /> },
@@ -22,23 +81,16 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
     { label: "Data Usage", value: "8.4 TB", change: "-2.3%", trend: "down", icon: <Activity className="text-orange-500" size={24} /> },
   ];
 
-  const recentOrders = [
-    { id: "ORD-7829", client: "Apex Travel", plan: "Global 5GB", amount: "$15.00", status: "Completed", date: "2 mins ago" },
-    { id: "ORD-7828", client: "Wanderlust Co", plan: "Europe 10GB", amount: "$22.00", status: "Processing", date: "15 mins ago" },
-    { id: "ORD-7827", client: "Global Tours", plan: "USA Unlimited", amount: "$35.00", status: "Completed", date: "1 hour ago" },
-    { id: "ORD-7826", client: "Corporate Inc", plan: "Asia 3GB", amount: "$12.00", status: "Completed", date: "3 hours ago" },
-  ];
-
   return (
     <div className="space-y-8 animate-in-view">
-      
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-display font-bold text-white">Dashboard Overview</h2>
           <p className="text-slate-500 text-sm">Welcome back, here's what's happening today.</p>
         </div>
-        <button 
+        <button
           onClick={() => setActiveTab('esim')}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(249,115,22,0.3)] hover:shadow-[0_0_25px_rgba(249,115,22,0.5)]"
         >
@@ -68,7 +120,7 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Revenue Chart Area */}
         <div className="lg:col-span-2 bg-[#171717] border border-white/5 rounded-xl p-6">
           <div className="flex justify-between items-center mb-6">
@@ -79,12 +131,12 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
               <option>This Year</option>
             </select>
           </div>
-          
+
           {/* Mock Bar Chart */}
           <div className="h-64 flex items-end justify-between gap-2 md:gap-4 pt-4 pb-2">
             {[65, 45, 75, 50, 85, 60, 90].map((h, i) => (
               <div key={i} className="w-full bg-white/5 rounded-t-lg relative group h-full flex flex-col justify-end hover:bg-white/10 transition-colors">
-                <div 
+                <div
                   className="w-full bg-gradient-to-t from-orange-600 to-orange-400 rounded-t-sm transition-all duration-500 group-hover:from-orange-500 group-hover:to-orange-300"
                   style={{ height: `${h}%` }}
                 ></div>
@@ -115,7 +167,7 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
                     <span className="text-slate-400">{item.volume}</span>
                   </div>
                   <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-orange-500 rounded-full"
                       style={{ width: item.volume }}
                     ></div>
@@ -131,7 +183,13 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
       <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
         <div className="p-6 border-b border-white/5 flex justify-between items-center">
           <h3 className="font-semibold text-white">Recent Transactions</h3>
-          <button className="text-orange-500 text-sm hover:text-orange-400">View All</button>
+          <button
+            onClick={fetchRecentOrders}
+            className="flex items-center gap-2 text-orange-500 text-sm hover:text-orange-400 transition-colors"
+          >
+            <RefreshCw size={14} className={loadingOrders ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -147,27 +205,50 @@ const Overview: React.FC<OverviewProps> = ({ setActiveTab }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {recentOrders.map((order, i) => (
-                <tr key={i} className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 font-mono text-slate-300">{order.id}</td>
-                  <td className="px-6 py-4 font-medium text-white">{order.client}</td>
-                  <td className="px-6 py-4 text-slate-400">{order.plan}</td>
-                  <td className="px-6 py-4 text-white font-medium">{order.amount}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      order.status === 'Completed' ? 'bg-green-400/10 text-green-400' : 'bg-yellow-400/10 text-yellow-400'
-                    }`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-500">{order.date}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-slate-500 hover:text-white">
-                      <MoreHorizontal size={16} />
-                    </button>
+              {loadingOrders ? (
+                // Loading skeleton rows
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="h-4 bg-white/5 rounded w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-white/5 rounded w-28" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-white/5 rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-white/5 rounded w-16" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-white/5 rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-white/5 rounded w-20" /></td>
+                    <td className="px-6 py-4"></td>
+                  </tr>
+                ))
+              ) : recentOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center gap-3 text-slate-500">
+                      <Inbox size={32} className="text-slate-600" />
+                      <span>No transactions yet. Orders from partners will appear here.</span>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                recentOrders.map((order, i) => (
+                  <tr key={i} className="hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4 font-mono text-slate-300 text-xs">{order.id.slice(-8).toUpperCase()}</td>
+                    <td className="px-6 py-4 font-medium text-white">{order.client}</td>
+                    <td className="px-6 py-4 text-slate-400">{order.plan}</td>
+                    <td className="px-6 py-4 text-white font-medium">{order.amount}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[order.status] || 'bg-slate-400/10 text-slate-400'
+                        }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500">{timeAgo(order.date)}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-slate-500 hover:text-white">
+                        <MoreHorizontal size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
