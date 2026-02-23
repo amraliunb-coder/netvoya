@@ -33,6 +33,7 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
 
   const [activations, setActivations] = useState<Activation[]>([]);
   const [usageData, setUsageData] = useState<Record<string, any>>({});
+  const [usageFetched, setUsageFetched] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
@@ -86,7 +87,11 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
               }
             } catch (usageErr) {
               console.error("Failed to fetch usage data", usageErr);
+            } finally {
+              setUsageFetched(true);
             }
+          } else {
+            setUsageFetched(true);
           }
         }
       } catch (err) {
@@ -237,6 +242,8 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
                         </div>
                       );
                     })()
+                  ) : item.status === 'Active' && usageFetched ? (
+                    <div className="text-slate-500 text-xs mt-1">Usage unavailable</div>
                   ) : item.status === 'Active' ? (
                     <div className="w-24 h-1.5 mt-2 bg-white/10 rounded-full overflow-hidden relative">
                       <div className="absolute inset-0 bg-white/5 animate-pulse"></div>

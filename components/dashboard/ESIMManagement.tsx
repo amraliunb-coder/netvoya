@@ -59,6 +59,7 @@ const ESIMManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [partnerFilter, setPartnerFilter] = useState('');
   const [usageData, setUsageData] = useState<Record<string, any>>({});
+  const [usageFetched, setUsageFetched] = useState(false);
 
   // Form State
   const [partners, setPartners] = useState<User[]>([]);
@@ -133,7 +134,11 @@ const ESIMManagement: React.FC = () => {
           }
         } catch (usageErr) {
           console.error("Failed to fetch usage data", usageErr);
+        } finally {
+          setUsageFetched(true);
         }
+      } else {
+        setUsageFetched(true);
       }
     } catch (err: any) {
       setError('Failed to fetch data. Is the backend running?');
@@ -954,6 +959,8 @@ const ESIMManagement: React.FC = () => {
                             </>
                           );
                         })()
+                      ) : usageFetched ? (
+                        <span className="text-[10px] text-slate-500">Usage unavailable</span>
                       ) : (
                         <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative" title="Loading usage...">
                           <div className="absolute inset-0 bg-white/5 animate-pulse"></div>
