@@ -32,6 +32,7 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
   });
 
   const [activations, setActivations] = useState<Activation[]>([]);
+  const [usageData, setUsageData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
@@ -69,7 +70,24 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
         });
 
         if (actRes.data.success) {
-          setActivations(actRes.data.activations);
+          const acts = actRes.data.activations || [];
+          setActivations(acts);
+
+          // Fetch usage for active eSIMs
+          const activeIccids = acts
+            .filter((a: Activation) => a.status === 'Active')
+            .map((a: Activation) => a.iccid);
+
+          if (activeIccids.length > 0) {
+            try {
+              const usageRes = await axios.post(`${API_BASE}/esim/usage/batch`, { iccids: activeIccids });
+              if (usageRes.data.success) {
+                setUsageData(usageRes.data.usage);
+              }
+            } catch (usageErr) {
+              console.error("Failed to fetch usage data", usageErr);
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -184,13 +202,50 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
                     <div className="text-slate-500 text-xs font-mono">ID: {item.iccid}</div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-1">
                   <div className={`font-medium text-sm ${item.status === 'Active' ? 'text-green-400' : 'text-blue-400'}`}>
                     {item.status}
                   </div>
-                  <div className="text-slate-500 text-xs">
-                    {new Date(item.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  {item.status === 'Active' && usageData[item.iccid] ? (
+                    (() => {
+                      const u = usageData[item.iccid];
+                      if (!u.initial_data || !u.remaining_data) return <div className="text-slate-500 text-xs">Usage unavailable</div>;
+
+                      const parseVal = (str: string) => {
+                        if (!str) return 0;
+                        const num = parseFloat(str) || 0;
+                        if (str.toUpperCase().includes('GB')) return num * 1024;
+                        return num;
+                      };
+
+                      const initial = parseVal(u.initial_data);
+                      const remaining = parseVal(u.remaining_data);
+                      const pct = initial > 0 ? (remaining / initial) * 100 : 0;
+
+                      let colorClass = "bg-green-500";
+                      if (pct < 20) colorClass = "bg-red-500";
+                      else if (pct < 50) colorClass = "bg-yellow-500";
+
+                      return (
+                        <div className="w-24 mt-1">
+                          <div className="flex justify-between w-full text-[10px] text-slate-400 font-mono mb-1">
+                            <span>{u.remaining_data} left</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden" title={`${pct.toFixed(0)}% remaining`}>
+                            <div className={`h-full ${colorClass} rounded-full transition-all duration-1000`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}></div>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : item.status === 'Active' ? (
+                    <div className="w-24 h-1.5 mt-2 bg-white/10 rounded-full overflow-hidden relative">
+                      <div className="absolute inset-0 bg-white/5 animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-500 text-xs">
+                      {new Date(item.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
                 </div>
               </div>
             ))

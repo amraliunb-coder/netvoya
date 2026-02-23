@@ -58,6 +58,7 @@ const ESIMManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [partnerFilter, setPartnerFilter] = useState('');
+  const [usageData, setUsageData] = useState<Record<string, any>>({});
 
   // Form State
   const [partners, setPartners] = useState<User[]>([]);
@@ -113,10 +114,27 @@ const ESIMManagement: React.FC = () => {
         axios.get(`${API_BASE}/packages?admin=true`)
       ]);
 
-      setProfiles(profilesResp.data.profiles || []);
+      const profilesList = profilesResp.data.profiles || [];
+      setProfiles(profilesList);
       setPartners(usersResp.data || []);
       setPackages(pkgsResp.data.packages || []);
       setError(null);
+
+      // Fetch usage for active/assigned eSIMs
+      const activeIccids = profilesList
+        .filter((p: EsimProfile) => p.status === 'Active' || p.status === 'Assigned')
+        .map((p: EsimProfile) => p.iccid);
+
+      if (activeIccids.length > 0) {
+        try {
+          const usageRes = await axios.post(`${API_BASE}/esim/usage/batch`, { iccids: activeIccids });
+          if (usageRes.data.success) {
+            setUsageData(usageRes.data.usage);
+          }
+        } catch (usageErr) {
+          console.error("Failed to fetch usage data", usageErr);
+        }
+      }
     } catch (err: any) {
       setError('Failed to fetch data. Is the backend running?');
     } finally {
@@ -901,8 +919,46 @@ const ESIMManagement: React.FC = () => {
                     </div>
                   </div>
                   {profile.status !== 'Available' && (
-                    <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden" title="Data Usage">
-                      <div className="h-full bg-orange-500 rounded-full" style={{ width: `${Math.random() * 80}%` }}></div>
+                    <div className="flex flex-col items-end gap-1 w-32">
+                      {usageData[profile.iccid] ? (
+                        (() => {
+                          const u = usageData[profile.iccid];
+                          if (!u.initial_data || !u.remaining_data) {
+                            return <span className="text-[10px] text-slate-500">Usage unavailable</span>;
+                          }
+
+                          // Parse simple "1 GB" or "500 MB" strings loosely
+                          const parseVal = (str: string) => {
+                            if (!str) return 0;
+                            const num = parseFloat(str) || 0;
+                            if (str.toUpperCase().includes('GB')) return num * 1024;
+                            return num;
+                          };
+
+                          const initial = parseVal(u.initial_data);
+                          const remaining = parseVal(u.remaining_data);
+                          const pct = initial > 0 ? (remaining / initial) * 100 : 0;
+
+                          let colorClass = "bg-green-500";
+                          if (pct < 20) colorClass = "bg-red-500";
+                          else if (pct < 50) colorClass = "bg-yellow-500";
+
+                          return (
+                            <>
+                              <div className="flex justify-between w-full text-[10px] text-slate-400 font-mono">
+                                <span>{u.remaining_data} left</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden" title={`${pct.toFixed(0)}% remaining`}>
+                                <div className={`h-full ${colorClass} rounded-full transition-all duration-1000`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}></div>
+                              </div>
+                            </>
+                          );
+                        })()
+                      ) : (
+                        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative" title="Loading usage...">
+                          <div className="absolute inset-0 bg-white/5 animate-pulse"></div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
