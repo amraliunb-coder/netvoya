@@ -7,8 +7,14 @@ import {
   Zap,
   ArrowRight,
   Wifi,
-  RefreshCw
+  RefreshCw,
+  TrendingUp,
+  AlertTriangle,
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { subDays, startOfMonth, format, isAfter, eachDayOfInterval, startOfDay, addDays } from 'date-fns';
 
 interface PartnerOverviewProps {
   setActiveTab: (tab: string) => void;
@@ -107,8 +113,90 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
     fetchDashboardData();
   }, []);
 
+  const [trendPeriod, setTrendPeriod] = useState<'7' | '30' | 'month'>('30');
+
   const { totalTokens, activeTokens, availableTokens } = stats;
   const usagePercentage = totalTokens > 0 ? (activeTokens / totalTokens) * 100 : 0;
+
+  // Process Activation Trends Data
+  const chartData = React.useMemo(() => {
+    const end = new Date();
+    let start = subDays(end, 7);
+    if (trendPeriod === '30') start = subDays(end, 30);
+    if (trendPeriod === 'month') start = startOfMonth(end);
+
+    start = startOfDay(start);
+
+    // Filter relevant activations
+    const relevantActs = activations.filter((a: any) => isAfter(new Date(a.updatedAt || new Date()), start));
+
+    const map = new Map<string, number>();
+    for (const a of relevantActs) {
+      const d = format(new Date(a.updatedAt || new Date()), 'MMM dd');
+      map.set(d, (map.get(d) || 0) + 1);
+    }
+
+    const days = eachDayOfInterval({ start, end });
+    return days.map(d => {
+      const formatted = format(d, 'MMM dd');
+      return {
+        date: formatted,
+        activations: map.get(formatted) || 0
+      };
+    });
+  }, [activations, trendPeriod]);
+
+  const currentPeriodTotal = chartData.reduce((sum, d) => sum + d.activations, 0);
+
+  // Determine low data / expiring "Needs Attention" items
+  const needsAttentionItems = React.useMemo(() => {
+    const alerts: any[] = [];
+
+    activations.filter(a => a.status === 'Active').forEach((a: any) => {
+      const u = usageData[a.iccid];
+      if (!u || !u.initial_data || !u.remaining_data) return;
+
+      const parseVal = (str: string) => {
+        if (!str) return 0;
+        const num = parseFloat(str) || 0;
+        if (str.toUpperCase().includes('GB')) return num * 1024;
+        return num;
+      };
+
+      const initial = parseVal(u.initial_data);
+      const remaining = parseVal(u.remaining_data);
+      const pct = initial > 0 ? (remaining / initial) * 100 : 0;
+
+      const packageName = (a.bucket_id as any)?.package_name || 'Global Data Plan';
+
+      if (pct < 10) {
+        alerts.push({
+          iccid: a.iccid,
+          type: 'low_data',
+          name: a.assigned_to_name || 'Unknown',
+          package: packageName,
+          text: `Only ${pct.toFixed(0)}% data remaining (${u.remaining_data} left).`
+        });
+      }
+
+      // Simple expiry heuristic: if updated > 28 days ago for a 30-day package
+      if (packageName.includes('30 Days')) {
+        const assignedDate = new Date(a.updatedAt || new Date());
+        const daysSince = (new Date().getTime() - assignedDate.getTime()) / (1000 * 3600 * 24);
+        if (daysSince > 28 && daysSince <= 30) {
+          alerts.push({
+            iccid: a.iccid,
+            type: 'expiring',
+            name: a.assigned_to_name || 'Unknown',
+            package: packageName,
+            text: `Expires in < 48 hours.`
+          });
+        }
+      }
+    });
+
+    return alerts;
+  }, [activations, usageData]);
 
   return (
     <div className="space-y-8 animate-in-view">
@@ -179,114 +267,131 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <h3 className="font-semibold text-white">Recent Activations</h3>
+      {/* Performance & Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* Activation Trends */}
+        <div className="lg:col-span-7 bg-[#171717] border border-white/5 rounded-xl flex flex-col overflow-hidden">
+          <div className="p-6 border-b border-white/5 flex justify-between items-center">
+            <h3 className="font-semibold text-white">Activation Trends</h3>
             <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              value={trendPeriod}
+              onChange={(e) => setTrendPeriod(e.target.value as any)}
               className="bg-black/40 border border-white/10 rounded-lg py-1 px-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
             >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Assigned">Assigned</option>
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="month">This Month</option>
             </select>
           </div>
-          {(() => {
-            const filteredActivations = filterStatus === 'All' ? activations : activations.filter(a => a.status === filterStatus);
-            if (filteredActivations.length <= 5) return null;
-            return (
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="text-orange-500 text-sm hover:text-orange-400 flex items-center gap-1"
-              >
-                {expanded ? 'Show Less' : 'View All'} <ArrowRight size={14} className={`transform transition-transform ${expanded ? '-rotate-90' : ''}`} />
-              </button>
-            );
-          })()}
+          <div className="p-6 flex-1 flex flex-col">
+            <div className="mb-6">
+              <div className="text-3xl font-display font-bold text-white mb-1">{currentPeriodTotal} Activations</div>
+              <div className="flex items-center gap-1 text-sm text-green-400">
+                <TrendingUp size={14} />
+                <span>Steady growth</span>
+              </div>
+            </div>
+            <div className="h-[200px] w-full">
+              {loading ? (
+                <div className="h-full flex items-center justify-center text-slate-500">
+                  <RefreshCw className="animate-spin mb-2" size={20} />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorActs" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      dy={10}
+                      minTickGap={20}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{ backgroundColor: '#171717', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+                      itemStyle={{ color: '#f97316' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="activations"
+                      stroke="#f97316"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorActs)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="p-0">
-          {(() => {
-            const filteredActivations = filterStatus === 'All' ? activations : activations.filter(a => a.status === filterStatus);
 
-            if (loading) return (
+        {/* Needs Attention */}
+        <div className="lg:col-span-5 bg-[#171717] border border-white/5 rounded-xl flex flex-col overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <AlertTriangle size={120} />
+          </div>
+          <div className="p-6 border-b border-white/5 relative z-10">
+            <h3 className="font-semibold text-white">Needs Attention</h3>
+          </div>
+          <div className="p-0 flex-1 relative z-10">
+            {loading ? (
               <div className="p-8 text-center text-slate-500">
                 <RefreshCw className="animate-spin mx-auto mb-2" size={20} />
-                Loading...
               </div>
-            );
-
-            if (filteredActivations.length === 0) return (
-              <div className="p-8 text-center text-slate-500">No activations found for this filter.</div>
-            );
-
-            const displayActivations = expanded ? filteredActivations : filteredActivations.slice(0, 5);
-
-            return displayActivations.map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-4 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.status === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-white/5 text-slate-400'}`}>
-                    <Zap size={18} />
-                  </div>
-                  <div>
-                    <div className="text-white font-medium text-sm">{(item.bucket_id as any)?.package_name || 'Global Data Plan'}</div>
-                    <div className="text-slate-500 text-xs font-mono">ID: {item.iccid}</div>
-                    {item.assigned_to_name && <div className="text-slate-400 text-xs mt-1">Issued to: <span className="text-slate-300">{item.assigned_to_name}</span></div>}
-                  </div>
-                </div>
-                <div className="text-right flex flex-col items-end gap-1">
-                  <div className={`font-medium text-sm ${item.status === 'Active' ? 'text-green-400' : 'text-blue-400'}`}>
-                    {item.status}
-                  </div>
-                  {item.status === 'Active' && usageData[item.iccid] ? (
-                    (() => {
-                      const u = usageData[item.iccid];
-                      if (!u.initial_data || !u.remaining_data) return <div className="text-slate-500 text-xs">Usage unavailable</div>;
-
-                      const parseVal = (str: string) => {
-                        if (!str) return 0;
-                        const num = parseFloat(str) || 0;
-                        if (str.toUpperCase().includes('GB')) return num * 1024;
-                        return num;
-                      };
-
-                      const initial = parseVal(u.initial_data);
-                      const remaining = parseVal(u.remaining_data);
-                      const pct = initial > 0 ? (remaining / initial) * 100 : 0;
-
-                      let colorClass = "bg-green-500";
-                      if (pct < 20) colorClass = "bg-red-500";
-                      else if (pct < 50) colorClass = "bg-yellow-500";
-
-                      return (
-                        <div className="w-24 mt-1">
-                          <div className="flex justify-between w-full text-[10px] text-slate-400 font-mono mb-1">
-                            <span>{u.remaining_data} left</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden" title={`${pct.toFixed(0)}% remaining`}>
-                            <div className={`h-full ${colorClass} rounded-full transition-all duration-1000`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}></div>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  ) : item.status === 'Active' && usageFetched ? (
-                    <div className="text-slate-500 text-xs mt-1">Usage unavailable</div>
-                  ) : item.status === 'Active' ? (
-                    <div className="w-24 h-1.5 mt-2 bg-white/10 rounded-full overflow-hidden relative">
-                      <div className="absolute inset-0 bg-white/5 animate-pulse"></div>
-                    </div>
-                  ) : (
-                    <div className="text-slate-500 text-xs">
-                      {new Date(item.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  )}
-                </div>
+            ) : needsAttentionItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-slate-500 h-full">
+                <CheckCircle2 size={48} className="text-green-500/50 mb-4" />
+                <p>All active eSIMs are healthy.</p>
               </div>
-            ));
-          })()}
+            ) : (
+              <div className="flex flex-col h-full">
+                <div className="flex-1">
+                  {needsAttentionItems.slice(0, 4).map((item, i) => (
+                    <div key={i} className="flex items-start gap-4 p-4 border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <div className={`mt-1 p-2 rounded-lg ${item.type === 'low_data' ? 'bg-orange-500/10 text-orange-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {item.type === 'low_data' ? <AlertTriangle size={16} /> : <Clock size={16} />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-white">{item.name} - <span className="text-slate-400">{item.package}</span></div>
+                        <div className="text-xs text-slate-500 mt-1">{item.text}</div>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('esims')}
+                        className="text-xs text-orange-500 hover:text-orange-400 font-medium whitespace-nowrap"
+                      >
+                        View
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {needsAttentionItems.length > 4 && (
+                  <div className="p-4 border-t border-white/5 text-right">
+                    <button
+                      onClick={() => setActiveTab('esims')}
+                      className="text-orange-500 text-sm hover:text-orange-400 font-medium flex items-center justify-end gap-1 w-full"
+                    >
+                      View All Alerts <ArrowRight size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
       </div>
 
     </div>
