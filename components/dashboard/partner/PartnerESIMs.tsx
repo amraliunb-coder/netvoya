@@ -68,6 +68,9 @@ const PartnerESIMs: React.FC = () => {
       const user = userStr ? JSON.parse(userStr) : null;
       const partnerId = user?.id;
 
+      const response = await axios.get(`${API_BASE}/partner/activations`, {
+        params: { partner_id: partnerId }
+      });
       const acts = response.data.activations || [];
       setProfiles(acts);
 
