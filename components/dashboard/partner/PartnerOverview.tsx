@@ -195,8 +195,11 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
       }
     });
 
-    // Insert dummy alerts for demonstration if none exist natively
-    if (alerts.length === 0) {
+    // Insert dummy alerts for demonstration if none exist natively, but ONLY for the demo partner
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    if (alerts.length === 0 && user?.email === 'partner@netvoya.com') {
       alerts.push({
         iccid: 'dummy-1',
         type: 'low_data',
