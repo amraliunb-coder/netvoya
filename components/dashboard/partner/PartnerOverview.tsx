@@ -20,6 +20,7 @@ interface Activation {
   status: string;
   updatedAt: string;
   bucket_id: string;
+  assigned_to_name?: string;
   // We might need to fetch package name separately or populate it, 
   // but for now we can infer or leave generic.
 }
@@ -35,6 +36,7 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
   const [usageData, setUsageData] = useState<Record<string, any>>({});
   const [usageFetched, setUsageFetched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -180,12 +182,14 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
       <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
         <div className="p-6 border-b border-white/5 flex justify-between items-center">
           <h3 className="font-semibold text-white">Recent Activations</h3>
-          <button
-            onClick={() => setActiveTab('my-esims')}
-            className="text-orange-500 text-sm hover:text-orange-400 flex items-center gap-1"
-          >
-            View All <ArrowRight size={14} />
-          </button>
+          {activations.length > 5 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-orange-500 text-sm hover:text-orange-400 flex items-center gap-1"
+            >
+              {expanded ? 'Show Less' : 'View All'} <ArrowRight size={14} className={`transform transition-transform ${expanded ? '-rotate-90' : ''}`} />
+            </button>
+          )}
         </div>
         <div className="p-0">
           {loading ? (
@@ -196,7 +200,7 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
           ) : activations.length === 0 ? (
             <div className="p-8 text-center text-slate-500">No recent activations found.</div>
           ) : (
-            activations.map((item, i) => (
+            (expanded ? activations : activations.slice(0, 5)).map((item, i) => (
               <div key={i} className="flex items-center justify-between p-4 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.status === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-white/5 text-slate-400'}`}>
@@ -205,6 +209,7 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
                   <div>
                     <div className="text-white font-medium text-sm">{(item.bucket_id as any)?.package_name || 'Global Data Plan'}</div>
                     <div className="text-slate-500 text-xs font-mono">ID: {item.iccid}</div>
+                    {item.assigned_to_name && <div className="text-slate-400 text-xs mt-1">Issued to: <span className="text-slate-300">{item.assigned_to_name}</span></div>}
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1">

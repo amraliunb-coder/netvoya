@@ -33,6 +33,8 @@ const PartnerESIMs: React.FC = () => {
   const [assigningBucket, setAssigningBucket] = useState<InventoryBucket | null>(null);
   const [assignmentData, setAssignmentData] = useState({ name: '', email: '' });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -56,6 +58,24 @@ const PartnerESIMs: React.FC = () => {
     }
   };
 
+  const fetchProfiles = async () => {
+    try {
+      setLoadingProfiles(true);
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const partnerId = user?.id;
+
+      const response = await axios.get(`${API_BASE}/partner/activations`, {
+        params: { partner_id: partnerId }
+      });
+      setProfiles(response.data.activations || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingProfiles(false);
+    }
+  };
+
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningBucket) return;
@@ -69,6 +89,7 @@ const PartnerESIMs: React.FC = () => {
         setAssignmentData({ name: '', email: '' });
         setStatus('idle');
         fetchInventory();
+        fetchProfiles();
       }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Assignment failed.');
@@ -87,6 +108,7 @@ const PartnerESIMs: React.FC = () => {
 
   useEffect(() => {
     fetchInventory();
+    fetchProfiles();
   }, []);
 
   return (
@@ -265,6 +287,69 @@ const PartnerESIMs: React.FC = () => {
         <div className="text-sm">
           <p className="text-orange-200 font-medium mb-1">Stock Note</p>
           <p className="text-slate-400">Inventory is automatically replenished after bulk purchases. Assigning a profile removes it from your available stock and emails the link to the recipient.</p>
+        </div>
+      </div>
+
+      {/* Assigned eSIMs Table */}
+      <div className="mt-8">
+        <h3 className="text-xl font-display font-bold text-white mb-4">Assigned & Active eSIMs</h3>
+        <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Package Plan</th>
+                <th className="px-6 py-4">ICCID</th>
+                <th className="px-6 py-4">Issued To</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-right">Date Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {loadingProfiles ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                    <RefreshCw className="animate-spin mx-auto mb-2 text-orange-500" />
+                    Loading eSIMs...
+                  </td>
+                </tr>
+              ) : profiles.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                    No assigned eSIMs found.
+                  </td>
+                </tr>
+              ) : profiles.map((profile: any) => (
+                <tr key={profile._id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-sm">
+                    <div className="text-white font-medium">{profile.bucket_id?.package_name || 'Global Data Plan'}</div>
+                  </td>
+                  <td className="px-6 py-4 text-slate-300 font-mono">
+                    <div className="flex items-center gap-2">
+                      {profile.iccid}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {profile.assigned_to_name ? (
+                      <div>
+                        <div className="text-white">{profile.assigned_to_name}</div>
+                        {profile.assigned_to_email && <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Mail size={10} />{profile.assigned_to_email}</div>}
+                      </div>
+                    ) : (
+                      <span className="text-slate-500 italic">Not assigned</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${profile.status === 'Active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                      {profile.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right text-slate-500 text-xs">
+                    {new Date(profile.updatedAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
