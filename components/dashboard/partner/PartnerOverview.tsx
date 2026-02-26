@@ -389,12 +389,6 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
                         <div className="text-sm font-medium text-white">{item.name} - <span className="text-slate-400">{item.package}</span></div>
                         <div className="text-xs text-slate-500 mt-1">{item.text}</div>
                       </div>
-                      <button
-                        onClick={() => setActiveTab('esims')}
-                        className="text-xs text-orange-500 hover:text-orange-400 font-medium whitespace-nowrap"
-                      >
-                        View
-                      </button>
                     </div>
                   ))}
                 </div>

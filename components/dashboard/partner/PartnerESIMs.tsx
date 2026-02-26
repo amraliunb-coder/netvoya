@@ -36,6 +36,7 @@ const PartnerESIMs: React.FC = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
   const [profilesFilterStatus, setProfilesFilterStatus] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [usageData, setUsageData] = useState<Record<string, any>>({});
   const [usageFetched, setUsageFetched] = useState(false);
 
@@ -354,7 +355,17 @@ const PartnerESIMs: React.FC = () => {
       <div className="mt-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <h3 className="text-xl font-display font-bold text-white">Assigned & Active eSIMs</h3>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+              <input
+                type="text"
+                placeholder="Search by name, email, or ICCID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-[#171717] border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 w-full sm:w-64"
+              />
+            </div>
             <select
               value={profilesFilterStatus}
               onChange={(e) => setProfilesFilterStatus(e.target.value)}
@@ -392,81 +403,97 @@ const PartnerESIMs: React.FC = () => {
                     Loading eSIMs...
                   </td>
                 </tr>
-              ) : (profilesFilterStatus === 'All' ? profiles : profiles.filter(p => p.status === profilesFilterStatus)).length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                    No assigned eSIMs found for this filter.
-                  </td>
-                </tr>
-              ) : (profilesFilterStatus === 'All' ? profiles : profiles.filter(p => p.status === profilesFilterStatus)).map((profile: any) => (
-                <tr key={profile._id} className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 text-sm">
-                    <div className="text-white font-medium">{profile.bucket_id?.package_name || 'Global Data Plan'}</div>
-                  </td>
-                  <td className="px-6 py-4 text-slate-300 font-mono">
-                    <div className="flex items-center gap-2">
-                      {profile.iccid}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {profile.assigned_to_name ? (
-                      <div>
-                        <div className="text-white">{profile.assigned_to_name}</div>
-                        {profile.assigned_to_email && <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Mail size={10} />{profile.assigned_to_email}</div>}
+              ) : (() => {
+                const filteredProfiles = profiles.filter(p => {
+                  const matchStatus = profilesFilterStatus === 'All' || p.status === profilesFilterStatus;
+                  const searchLower = searchQuery.toLowerCase();
+                  const matchSearch = !searchQuery ||
+                    (p.assigned_to_name && p.assigned_to_name.toLowerCase().includes(searchLower)) ||
+                    (p.assigned_to_email && p.assigned_to_email.toLowerCase().includes(searchLower)) ||
+                    (p.iccid && p.iccid.toLowerCase().includes(searchLower));
+                  return matchStatus && matchSearch;
+                });
+
+                if (filteredProfiles.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                        No assigned eSIMs found for this filter.
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return filteredProfiles.map((profile: any) => (
+                  <tr key={profile._id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4 text-sm">
+                      <div className="text-white font-medium">{profile.bucket_id?.package_name || 'Global Data Plan'}</div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-300 font-mono">
+                      <div className="flex items-center gap-2">
+                        {profile.iccid}
                       </div>
-                    ) : (
-                      <span className="text-slate-500 italic">Not assigned</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-2">
-                      <span className={`inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${profile.status === 'Active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
-                        {profile.status}
-                      </span>
-                      {profile.status === 'Active' && usageData[profile.iccid] ? (
-                        (() => {
-                          const u = usageData[profile.iccid];
-                          if (!u.initial_data || !u.remaining_data) return <div className="text-slate-500 text-xs mt-1">Usage unavailable</div>;
-
-                          const parseVal = (str: string) => {
-                            if (!str) return 0;
-                            const num = parseFloat(str) || 0;
-                            if (str.toUpperCase().includes('GB')) return num * 1024;
-                            return num;
-                          };
-
-                          const initial = parseVal(u.initial_data);
-                          const remaining = parseVal(u.remaining_data);
-                          const pct = initial > 0 ? (remaining / initial) * 100 : 0;
-
-                          let colorClass = "bg-green-500";
-                          if (pct < 20) colorClass = "bg-red-500";
-                          else if (pct < 50) colorClass = "bg-orange-500";
-
-                          return (
-                            <div className="w-full max-w-[120px] mt-1">
-                              <div className="flex justify-between text-[10px] text-slate-400 mb-1">
-                                <span>{u.remaining_data} left</span>
-                                <span>of {u.initial_data}</span>
-                              </div>
-                              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}></div>
-                              </div>
-                            </div>
-                          );
-                        })()
-                      ) : profile.status === 'Active' && !usageFetched ? (
-                        <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                          <RefreshCw className="animate-spin" size={10} /> Loading usage...
+                    </td>
+                    <td className="px-6 py-4">
+                      {profile.assigned_to_name ? (
+                        <div>
+                          <div className="text-white">{profile.assigned_to_name}</div>
+                          {profile.assigned_to_email && <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Mail size={10} />{profile.assigned_to_email}</div>}
                         </div>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right text-slate-500 text-xs">
-                    {new Date(profile.updatedAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
+                      ) : (
+                        <span className="text-slate-500 italic">Not assigned</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-2">
+                        <span className={`inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${profile.status === 'Active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                          {profile.status}
+                        </span>
+                        {profile.status === 'Active' && usageData[profile.iccid] ? (
+                          (() => {
+                            const u = usageData[profile.iccid];
+                            if (!u.initial_data || !u.remaining_data) return <div className="text-slate-500 text-xs mt-1">Usage unavailable</div>;
+
+                            const parseVal = (str: string) => {
+                              if (!str) return 0;
+                              const num = parseFloat(str) || 0;
+                              if (str.toUpperCase().includes('GB')) return num * 1024;
+                              return num;
+                            };
+
+                            const initial = parseVal(u.initial_data);
+                            const remaining = parseVal(u.remaining_data);
+                            const pct = initial > 0 ? (remaining / initial) * 100 : 0;
+
+                            let colorClass = "bg-green-500";
+                            if (pct < 20) colorClass = "bg-red-500";
+                            else if (pct < 50) colorClass = "bg-orange-500";
+
+                            return (
+                              <div className="w-full max-w-[120px] mt-1">
+                                <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                                  <span>{u.remaining_data} left</span>
+                                  <span>of {u.initial_data}</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                  <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}></div>
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : profile.status === 'Active' && !usageFetched ? (
+                          <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                            <RefreshCw className="animate-spin" size={10} /> Loading usage...
+                          </div>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-500 text-xs">
+                      {new Date(profile.updatedAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ));
+              })()}
             </tbody>
           </table>
         </div>
