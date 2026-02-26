@@ -195,6 +195,24 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
       }
     });
 
+    // Insert dummy alerts for demonstration if none exist natively
+    if (alerts.length === 0) {
+      alerts.push({
+        iccid: 'dummy-1',
+        type: 'low_data',
+        name: 'Sarah Jenkins',
+        package: 'Europe 10GB Pack',
+        text: 'Only 5% data remaining (500MB left).'
+      });
+      alerts.push({
+        iccid: 'dummy-2',
+        type: 'expiring',
+        name: 'Michael Chen',
+        package: 'Egypt 1GB',
+        text: 'Expires in < 24 hours.'
+      });
+    }
+
     return alerts;
   }, [activations, usageData]);
 
