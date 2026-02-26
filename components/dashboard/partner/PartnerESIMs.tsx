@@ -36,6 +36,8 @@ const PartnerESIMs: React.FC = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
   const [profilesFilterStatus, setProfilesFilterStatus] = useState<string>('All');
+  const [usageData, setUsageData] = useState<Record<string, any>>({});
+  const [usageFetched, setUsageFetched] = useState(false);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -66,10 +68,29 @@ const PartnerESIMs: React.FC = () => {
       const user = userStr ? JSON.parse(userStr) : null;
       const partnerId = user?.id;
 
-      const response = await axios.get(`${API_BASE}/partner/activations`, {
-        params: { partner_id: partnerId }
-      });
-      setProfiles(response.data.activations || []);
+      const acts = response.data.activations || [];
+      setProfiles(acts);
+
+      // Fetch usage for active eSIMs
+      const activeIccids = acts
+        .filter((a: any) => a.status === 'Active')
+        .map((a: any) => a.iccid);
+
+      if (activeIccids.length > 0) {
+        try {
+          const usageRes = await axios.post(`${API_BASE}/esim/usage/batch`, { iccids: activeIccids });
+          if (usageRes.data.success) {
+            setUsageData(usageRes.data.usage);
+          }
+        } catch (usageErr) {
+          console.error("Failed to fetch usage data", usageErr);
+        } finally {
+          setUsageFetched(true);
+        }
+      } else {
+        setUsageFetched(true);
+      }
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -356,7 +377,7 @@ const PartnerESIMs: React.FC = () => {
                 <th className="px-6 py-4">Package Plan</th>
                 <th className="px-6 py-4">ICCID</th>
                 <th className="px-6 py-4">Issued To</th>
-                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Status & Usage</th>
                 <th className="px-6 py-4 text-right">Date Details</th>
               </tr>
             </thead>
@@ -395,9 +416,48 @@ const PartnerESIMs: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${profile.status === 'Active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
-                      {profile.status}
-                    </span>
+                    <div className="flex flex-col gap-2">
+                      <span className={`inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${profile.status === 'Active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                        {profile.status}
+                      </span>
+                      {profile.status === 'Active' && usageData[profile.iccid] ? (
+                        (() => {
+                          const u = usageData[profile.iccid];
+                          if (!u.initial_data || !u.remaining_data) return <div className="text-slate-500 text-xs mt-1">Usage unavailable</div>;
+
+                          const parseVal = (str: string) => {
+                            if (!str) return 0;
+                            const num = parseFloat(str) || 0;
+                            if (str.toUpperCase().includes('GB')) return num * 1024;
+                            return num;
+                          };
+
+                          const initial = parseVal(u.initial_data);
+                          const remaining = parseVal(u.remaining_data);
+                          const pct = initial > 0 ? (remaining / initial) * 100 : 0;
+
+                          let colorClass = "bg-green-500";
+                          if (pct < 20) colorClass = "bg-red-500";
+                          else if (pct < 50) colorClass = "bg-orange-500";
+
+                          return (
+                            <div className="w-full max-w-[120px] mt-1">
+                              <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                                <span>{u.remaining_data} left</span>
+                                <span>of {u.initial_data}</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}></div>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : profile.status === 'Active' && !usageFetched ? (
+                        <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                          <RefreshCw className="animate-spin" size={10} /> Loading usage...
+                        </div>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right text-slate-500 text-xs">
                     {new Date(profile.updatedAt).toLocaleDateString()}
