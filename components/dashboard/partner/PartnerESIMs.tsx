@@ -35,6 +35,7 @@ const PartnerESIMs: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
+  const [profilesFilterStatus, setProfilesFilterStatus] = useState<string>('All');
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -104,6 +105,41 @@ const PartnerESIMs: React.FC = () => {
     } catch (err) {
       alert('Download failed.');
     }
+  };
+
+  const handleExportCSV = () => {
+    const filteredProfiles = profilesFilterStatus === 'All' ? profiles : profiles.filter(p => p.status === profilesFilterStatus);
+
+    if (filteredProfiles.length === 0) {
+      alert('No data to export.');
+      return;
+    }
+
+    const headers = ['Package Plan', 'ICCID', 'Issued To Name', 'Issued To Email', 'Status', 'Date Assigned/Updated'];
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    for (const profile of filteredProfiles) {
+      const pkg = `"${profile.bucket_id?.package_name || 'Global Data Plan'}"`;
+      const iccid = `"${profile.iccid}"`;
+      const name = `"${profile.assigned_to_name || ''}"`;
+      const email = `"${profile.assigned_to_email || ''}"`;
+      const stat = `"${profile.status}"`;
+      const dateStr = `"${new Date(profile.updatedAt).toLocaleDateString()}"`;
+
+      csvRows.push([pkg, iccid, name, email, stat, dateStr].join(','));
+    }
+
+    const csvData = csvRows.join('\n');
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `esims_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   useEffect(() => {
@@ -292,7 +328,27 @@ const PartnerESIMs: React.FC = () => {
 
       {/* Assigned eSIMs Table */}
       <div className="mt-8">
-        <h3 className="text-xl font-display font-bold text-white mb-4">Assigned & Active eSIMs</h3>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h3 className="text-xl font-display font-bold text-white">Assigned & Active eSIMs</h3>
+          <div className="flex items-center gap-3">
+            <select
+              value={profilesFilterStatus}
+              onChange={(e) => setProfilesFilterStatus(e.target.value)}
+              className="bg-[#171717] border border-white/10 rounded-lg py-2 px-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
+            >
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Assigned">Assigned</option>
+            </select>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Download size={16} className="text-orange-500" />
+              Export CSV
+            </button>
+          </div>
+        </div>
         <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden shadow-2xl">
           <table className="w-full text-left text-sm">
             <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
@@ -312,13 +368,13 @@ const PartnerESIMs: React.FC = () => {
                     Loading eSIMs...
                   </td>
                 </tr>
-              ) : profiles.length === 0 ? (
+              ) : (profilesFilterStatus === 'All' ? profiles : profiles.filter(p => p.status === profilesFilterStatus)).length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                    No assigned eSIMs found.
+                    No assigned eSIMs found for this filter.
                   </td>
                 </tr>
-              ) : profiles.map((profile: any) => (
+              ) : (profilesFilterStatus === 'All' ? profiles : profiles.filter(p => p.status === profilesFilterStatus)).map((profile: any) => (
                 <tr key={profile._id} className="hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 text-sm">
                     <div className="text-white font-medium">{profile.bucket_id?.package_name || 'Global Data Plan'}</div>

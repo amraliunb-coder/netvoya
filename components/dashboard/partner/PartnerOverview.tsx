@@ -37,6 +37,7 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
   const [usageFetched, setUsageFetched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>('All');
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -180,27 +181,50 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
 
       {/* Recent Activity */}
       <div className="bg-[#171717] border border-white/5 rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex justify-between items-center">
-          <h3 className="font-semibold text-white">Recent Activations</h3>
-          {activations.length > 5 && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-orange-500 text-sm hover:text-orange-400 flex items-center gap-1"
+        <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <h3 className="font-semibold text-white">Recent Activations</h3>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="bg-black/40 border border-white/10 rounded-lg py-1 px-3 text-sm text-slate-300 focus:outline-none focus:border-orange-500/50"
             >
-              {expanded ? 'Show Less' : 'View All'} <ArrowRight size={14} className={`transform transition-transform ${expanded ? '-rotate-90' : ''}`} />
-            </button>
-          )}
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Assigned">Assigned</option>
+            </select>
+          </div>
+          {(() => {
+            const filteredActivations = filterStatus === 'All' ? activations : activations.filter(a => a.status === filterStatus);
+            if (filteredActivations.length <= 5) return null;
+            return (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-orange-500 text-sm hover:text-orange-400 flex items-center gap-1"
+              >
+                {expanded ? 'Show Less' : 'View All'} <ArrowRight size={14} className={`transform transition-transform ${expanded ? '-rotate-90' : ''}`} />
+              </button>
+            );
+          })()}
         </div>
         <div className="p-0">
-          {loading ? (
-            <div className="p-8 text-center text-slate-500">
-              <RefreshCw className="animate-spin mx-auto mb-2" size={20} />
-              Loading...
-            </div>
-          ) : activations.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">No recent activations found.</div>
-          ) : (
-            (expanded ? activations : activations.slice(0, 5)).map((item, i) => (
+          {(() => {
+            const filteredActivations = filterStatus === 'All' ? activations : activations.filter(a => a.status === filterStatus);
+
+            if (loading) return (
+              <div className="p-8 text-center text-slate-500">
+                <RefreshCw className="animate-spin mx-auto mb-2" size={20} />
+                Loading...
+              </div>
+            );
+
+            if (filteredActivations.length === 0) return (
+              <div className="p-8 text-center text-slate-500">No activations found for this filter.</div>
+            );
+
+            const displayActivations = expanded ? filteredActivations : filteredActivations.slice(0, 5);
+
+            return displayActivations.map((item, i) => (
               <div key={i} className="flex items-center justify-between p-4 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.status === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-white/5 text-slate-400'}`}>
@@ -260,8 +284,8 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
                   )}
                 </div>
               </div>
-            ))
-          )}
+            ));
+          })()}
         </div>
       </div>
 
