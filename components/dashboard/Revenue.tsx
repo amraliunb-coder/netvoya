@@ -8,7 +8,9 @@ import {
     Filter,
     ArrowUpRight,
     ArrowDownRight,
-    Inbox
+    Inbox,
+    Download,
+    Calendar
 } from 'lucide-react';
 
 interface RevenueStats {
@@ -35,7 +37,9 @@ const RevenueView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [partners, setPartners] = useState<{ id: string, name: string }[]>([]);
+    const [partners, setPartners] = useState<{ id: string, name: string }[]>([]);
     const [selectedPartner, setSelectedPartner] = useState<string>('all');
+    const [dateFilter, setDateFilter] = useState<string>('all');
 
     // Fetch unique partners for the filter dropdown
     useEffect(() => {
@@ -101,6 +105,67 @@ const RevenueView: React.FC = () => {
         }).format(new Date(dateStr));
     };
 
+    const filteredOrders = orders.filter(order => {
+        if (dateFilter === 'all') return true;
+
+        const orderDate = new Date(order.date);
+        const today = new Date();
+
+        if (dateFilter === 'today') {
+            return orderDate.toDateString() === today.toDateString();
+        }
+        if (dateFilter === '7days') {
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            return orderDate >= sevenDaysAgo;
+        }
+        if (dateFilter === '30days') {
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            return orderDate >= thirtyDaysAgo;
+        }
+        if (dateFilter === 'thismonth') {
+            return orderDate.getMonth() === today.getMonth() && orderDate.getFullYear() === today.getFullYear();
+        }
+        if (dateFilter === 'lastmonth') {
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59);
+            return orderDate >= lastMonth && orderDate <= endOfLastMonth;
+        }
+        return true;
+    });
+
+    const filteredStats = {
+        totalRevenue: filteredOrders.reduce((sum, order) => sum + order.amount, 0),
+        totalCost: filteredOrders.reduce((sum, order) => sum + order.cost, 0),
+        totalProfit: filteredOrders.reduce((sum, order) => sum + order.profit, 0)
+    };
+
+    const handleExportCsv = () => {
+        if (filteredOrders.length === 0) return;
+
+        const headers = ['Date', 'Partner', 'Package(s)', 'Retail Revenue', 'Actual Wholesale Cost', 'Net Profit'];
+        const csvRows = filteredOrders.map(order => [
+            new Date(order.date).toLocaleDateString(),
+            `"${order.client.replace(/"/g, '""')}"`,
+            `"${order.plan.replace(/"/g, '""')}"`,
+            order.amount.toFixed(2),
+            order.cost.toFixed(2),
+            order.profit.toFixed(2)
+        ].join(','));
+
+        const csvContent = [headers.join(','), ...csvRows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `netvoya_revenue_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="space-y-8 animate-in-view">
             {/* Header & Filters */}
@@ -124,6 +189,28 @@ const RevenueView: React.FC = () => {
                             ))}
                         </select>
                     </div>
+                    <div className="relative">
+                        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <select
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                            className="bg-[#171717] border border-white/10 rounded-lg text-sm text-white pl-9 pr-8 py-2 focus:outline-none focus:border-orange-500/50 appearance-none cursor-pointer hover:bg-white/5 transition-colors"
+                        >
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="7days">Last 7 Days</option>
+                            <option value="30days">Last 30 Days</option>
+                            <option value="thismonth">This Month</option>
+                            <option value="lastmonth">Last Month</option>
+                        </select>
+                    </div>
+                    <button
+                        onClick={handleExportCsv}
+                        disabled={filteredOrders.length === 0}
+                        className="p-2 bg-[#171717] border border-white/10 rounded-lg text-slate-400 hover:text-white hover:border-orange-500/50 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm pr-3"
+                    >
+                        <Download size={16} /> <span className="hidden sm:inline">Export CSV</span>
+                    </button>
                     <button
                         onClick={fetchRevenueData}
                         disabled={loading}
@@ -153,7 +240,7 @@ const RevenueView: React.FC = () => {
                             </div>
                             <div className="relative z-10">
                                 <div className="text-3xl font-display font-bold text-white mb-1">
-                                    {formatCurrency(stats.totalRevenue)}
+                                    {formatCurrency(filteredStats.totalRevenue)}
                                 </div>
                                 <div className="text-slate-500 text-sm">Total Retail Revenue</div>
                             </div>
@@ -170,7 +257,7 @@ const RevenueView: React.FC = () => {
                             </div>
                             <div className="relative z-10">
                                 <div className="text-3xl font-display font-bold text-red-100 mb-1">
-                                    {formatCurrency(stats.totalCost)}
+                                    {formatCurrency(filteredStats.totalCost)}
                                 </div>
                                 <div className="text-red-500/60 text-sm">Actual Wholesale Cost</div>
                             </div>
@@ -191,7 +278,7 @@ const RevenueView: React.FC = () => {
                             </div>
                             <div className="relative z-10">
                                 <div className="text-4xl font-display font-bold text-orange-500 mb-1 drop-shadow-[0_0_15px_rgba(249,115,22,0.5)]">
-                                    {formatCurrency(stats.totalProfit)}
+                                    {formatCurrency(filteredStats.totalProfit)}
                                 </div>
                                 <div className="text-orange-200/60 text-sm">Realized Margin</div>
                             </div>
@@ -227,7 +314,7 @@ const RevenueView: React.FC = () => {
                                                 Generating Analytics...
                                             </td>
                                         </tr>
-                                    ) : orders.length === 0 ? (
+                                    ) : filteredOrders.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="px-6 py-12 text-center">
                                                 <div className="flex flex-col items-center gap-3 text-slate-500">
@@ -239,7 +326,7 @@ const RevenueView: React.FC = () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        orders.map((order) => (
+                                        filteredOrders.map((order) => (
                                             <tr key={order.id} className="hover:bg-white/5 transition-colors group">
                                                 <td className="px-6 py-4 text-slate-400 text-xs">
                                                     {formatDate(order.date)}
