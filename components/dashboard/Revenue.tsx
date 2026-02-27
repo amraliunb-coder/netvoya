@@ -37,7 +37,6 @@ const RevenueView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [partners, setPartners] = useState<{ id: string, name: string }[]>([]);
-    const [partners, setPartners] = useState<{ id: string, name: string }[]>([]);
     const [selectedPartner, setSelectedPartner] = useState<string>('all');
     const [dateFilter, setDateFilter] = useState<string>('all');
 
