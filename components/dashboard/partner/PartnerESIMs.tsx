@@ -39,6 +39,8 @@ const PartnerESIMs: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [usageData, setUsageData] = useState<Record<string, any>>({});
   const [usageFetched, setUsageFetched] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -165,6 +167,16 @@ const PartnerESIMs: React.FC = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await fetchProfiles();
+      setLastSynced(new Date());
+    } finally {
+      setSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -375,6 +387,15 @@ const PartnerESIMs: React.FC = () => {
               <option value="Active">Active</option>
               <option value="Assigned">Assigned</option>
             </select>
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              title={lastSynced ? `Last synced: ${lastSynced.toLocaleTimeString()}` : 'Sync statuses with vendor'}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={`text-orange-500 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync Status'}
+            </button>
             <button
               onClick={handleExportCSV}
               className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
