@@ -24,6 +24,7 @@ import RevenueView from './dashboard/Revenue';
 import PartnerOverview from './dashboard/partner/PartnerOverview';
 import PartnerESIMs from './dashboard/partner/PartnerESIMs';
 import RequestInventory from './dashboard/partner/RequestInventory';
+import ApiAccess from './dashboard/partner/ApiAccess';
 import NotificationCenter from './dashboard/NotificationCenter';
 
 interface DashboardProps {
@@ -63,6 +64,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
     { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'my-esims', label: 'My eSIMs', icon: <Smartphone size={20} /> },
     { id: 'request', label: 'Request Inventory', icon: <ShoppingCart size={20} /> },
+    { id: 'api-access', label: 'API & Integrations', icon: <Settings size={20} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
   ];
 
@@ -84,6 +86,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
         case 'overview': return <PartnerOverview setActiveTab={setActiveTab} />;
         case 'my-esims': return <PartnerESIMs />;
         case 'request': return <RequestInventory />;
+        case 'api-access': return <ApiAccess />;
         case 'settings': return <SettingsView />;
         default: return <PlaceholderContent />;
       }
