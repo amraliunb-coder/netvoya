@@ -18,7 +18,7 @@ If using basic email/password, make a request to:
 **Request Body**
 ```json
 {
-  "email": "partner@sahara.com",
+  "email": "khairy@sahara-egypt.com",
   "password": "your-password"
 }
 ```
