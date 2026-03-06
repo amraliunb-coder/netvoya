@@ -20,6 +20,8 @@ import {
     Layers,
     ShieldCheck,
     ExternalLink,
+    X,
+    Receipt,
 } from 'lucide-react';
 
 interface ClientInventory {
@@ -33,6 +35,14 @@ interface ClientRevenue {
     total: number;
     orderCount: number;
     lastOrderAt: string | null;
+}
+
+interface Order {
+    _id: string;
+    createdAt: string;
+    totalTokens: number;
+    totalAmount: number;
+    status: string;
 }
 
 interface Client {
@@ -88,9 +98,11 @@ const Clients: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
-    const [sortField, setSortField] = useState<'revenue' | 'esims' | 'joined'>('revenue');
-    const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    const [viewingOrdersFor, setViewingOrdersFor] = useState<{ id: string, name: string } | null>(null);
+    const [clientOrders, setClientOrders] = useState<Order[]>([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
 
     const fetchClients = async () => {
         try {
@@ -107,41 +119,32 @@ const Clients: React.FC = () => {
 
     useEffect(() => { fetchClients(); }, []);
 
+    const fetchClientOrders = async (clientId: string, clientName: string) => {
+        try {
+            setViewingOrdersFor({ id: clientId, name: clientName });
+            setLoadingOrders(true);
+            const res = await axios.get(`${API_BASE}/admin/clients/${clientId}/orders`);
+            setClientOrders(res.data.orders || []);
+        } catch (err: any) {
+            console.error('Failed to fetch orders:', err);
+        } finally {
+            setLoadingOrders(false);
+        }
+    };
+
     // Derived stats
     const totalRevenue = clients.reduce((s, c) => s + c.revenue.total, 0);
     const totalEsims = clients.reduce((s, c) => s + c.inventory.total, 0);
     const activeCount = clients.filter(c => c.status === 'Active').length;
 
-    // Filter + sort
+    // Filter
     const filtered = clients
         .filter(c => {
             const q = search.toLowerCase();
             const matchSearch = !q || c.companyName.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.country.toLowerCase().includes(q);
             const matchStatus = statusFilter === 'all' || c.status === statusFilter;
             return matchSearch && matchStatus;
-        })
-        .sort((a, b) => {
-            let diff = 0;
-            if (sortField === 'revenue') diff = a.revenue.total - b.revenue.total;
-            else if (sortField === 'esims') diff = a.inventory.total - b.inventory.total;
-            else diff = new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
-            return sortDir === 'desc' ? -diff : diff;
         });
-
-    const toggleSort = (field: typeof sortField) => {
-        if (sortField === field) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
-        else { setSortField(field); setSortDir('desc'); }
-    };
-
-    const SortBtn: React.FC<{ field: typeof sortField; label: string }> = ({ field, label }) => (
-        <button
-            onClick={() => toggleSort(field)}
-            className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors ${sortField === field ? 'text-orange-400' : 'text-slate-500 hover:text-slate-300'}`}
-        >
-            {label}
-            {sortField === field ? (sortDir === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />) : null}
-        </button>
-    );
 
     const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
     const fmtCurrency = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -253,12 +256,9 @@ const Clients: React.FC = () => {
             ) : (
                 <div className="space-y-2">
                     {/* Sort bar */}
-                    <div className="flex items-center gap-6 px-4 pb-2 border-b border-white/5">
-                        <span className="text-xs text-slate-500 uppercase tracking-wider">Sort by:</span>
-                        <SortBtn field="revenue" label="Revenue" />
-                        <SortBtn field="esims" label="eSIMs" />
-                        <SortBtn field="joined" label="Join Date" />
-                        <span className="ml-auto text-xs text-slate-600">{filtered.length} partner{filtered.length !== 1 ? 's' : ''}</span>
+                    {/* Sort bar hidden but we keep the row layout */}
+                    <div className="flex items-center justify-end px-4 pb-2 border-b border-white/5">
+                        <span className="text-xs text-slate-600">{filtered.length} partner{filtered.length !== 1 ? 's' : ''}</span>
                     </div>
 
                     {filtered.map((client) => {
@@ -306,7 +306,13 @@ const Clients: React.FC = () => {
                                     {/* Stats */}
                                     <div className="flex items-center gap-2 ml-auto flex-wrap">
                                         <StatPill label="Revenue" value={fmtCurrency(client.revenue.total)} color="text-emerald-400" />
-                                        <StatPill label="eSIMs" value={client.inventory.total} color="text-blue-400" />
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); fetchClientOrders(client._id, client.companyName); }}
+                                            className="hover:scale-105 hover:-translate-y-0.5 transition-all outline-none focus:outline-none ring-1 ring-white/10 hover:ring-white/30 rounded-lg group"
+                                            title="View Transactions"
+                                        >
+                                            <StatPill label="eSIMs" value={client.inventory.total} color="text-blue-400 group-hover:text-blue-300 transition-colors" />
+                                        </button>
                                         <StatPill label="Assigned" value={client.inventory.assigned} color="text-orange-400" />
                                         {client.hasApiKey && (
                                             <div className="flex items-center gap-1 px-2 py-1 bg-violet-500/10 border border-violet-500/20 rounded-lg">
@@ -440,6 +446,76 @@ const Clients: React.FC = () => {
                     </div>
                 );
             })()}
+
+            {/* Transactions Modal */}
+            {viewingOrdersFor && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setViewingOrdersFor(null)}></div>
+                    <div className="bg-[#171717] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col relative shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden">
+                        <div className="flex items-center justify-between p-5 border-b border-white/10 bg-white/5">
+                            <div>
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <Receipt size={18} className="text-orange-500" /> Transaction History
+                                </h3>
+                                <p className="text-xs text-slate-400 mt-0.5">{viewingOrdersFor.name}</p>
+                            </div>
+                            <button onClick={() => setViewingOrdersFor(null)} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="p-0 overflow-y-auto flex-1 custom-scrollbar">
+                            {loadingOrders ? (
+                                <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500">
+                                    <RefreshCw size={28} className="animate-spin text-orange-500" />
+                                    <p className="text-sm">Loading transactions...</p>
+                                </div>
+                            ) : clientOrders.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-24 gap-4 text-slate-500">
+                                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+                                        <Receipt size={28} className="opacity-50" />
+                                    </div>
+                                    <p className="text-sm text-slate-400">No transactions found for this partner.</p>
+                                </div>
+                            ) : (
+                                <table className="w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="text-[11px] text-slate-500 uppercase tracking-widest bg-black/40 border-b border-white/5 sticky top-0 backdrop-blur-md">
+                                        <tr>
+                                            <th className="px-6 py-4 font-semibold">Purchase ID</th>
+                                            <th className="px-6 py-4 font-semibold">Purchase Date</th>
+                                            <th className="px-6 py-4 font-semibold text-right">Total eSIMs</th>
+                                            <th className="px-6 py-4 font-semibold text-right">Total Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {clientOrders.map(order => (
+                                            <tr key={order._id} className="hover:bg-white/5 hover:cursor-default transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <span className="font-mono text-slate-400 group-hover:text-slate-300 text-xs transition-colors">#{order._id.slice(-8)}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-400">
+                                                    {fmtDate(order.createdAt)}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 font-mono font-bold text-xs ring-1 ring-inset ring-blue-500/20">
+                                                        <Package size={12} />
+                                                        {order.totalTokens}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span className="font-mono font-bold text-emerald-400">
+                                                        {fmtCurrency(order.totalAmount)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
