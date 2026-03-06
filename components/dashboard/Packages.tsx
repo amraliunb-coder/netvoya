@@ -72,10 +72,12 @@ const Packages: React.FC = () => {
     const handleSync = async () => {
         try {
             setSyncing(true);
-            await axios.post(`${API_BASE}/vendor/sync`);
+            setError(null);
+            await axios.post(`${API_BASE}/vendor/sync`, {}, { timeout: 290000 }); // 290s timeout for large syncs
             await fetchPackages();
         } catch (err: any) {
-            setError('Sync failed. Check vendor credentials in .env');
+            const msg = err?.response?.data?.message || err?.message || 'Sync failed. Please try again.';
+            setError(`Sync failed: ${msg}`);
         } finally {
             setSyncing(false);
         }
