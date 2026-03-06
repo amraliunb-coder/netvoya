@@ -19,6 +19,7 @@ import ESIMManagement from './dashboard/ESIMManagement';
 import PackagesView from './dashboard/Packages';
 import SettingsView from './dashboard/Settings';
 import RevenueView from './dashboard/Revenue';
+import ClientsView from './dashboard/Clients';
 
 // Partner Components
 import PartnerOverview from './dashboard/partner/PartnerOverview';
@@ -75,6 +76,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
       switch (activeTab) {
         case 'overview': return <Overview setActiveTab={setActiveTab} />;
         case 'esim': return <ESIMManagement />;
+        case 'clients': return <ClientsView />;
         case 'packages': return <PackagesView />;
         case 'revenue': return <RevenueView />;
         case 'settings': return <SettingsView />;
