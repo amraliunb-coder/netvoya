@@ -77,24 +77,38 @@ const PartnerESIMs: React.FC = () => {
       const acts = response.data.activations || [];
       setProfiles(acts);
 
-      // Fetch usage for active eSIMs
-      const activeIccids = acts
-        .filter((a: any) => a.status === 'Active')
-        .map((a: any) => a.iccid);
+      // Extract usage data directly from activations response
+      // (backend now includes it, eliminating the need for a second batch call)
+      const usageFromActivations: Record<string, any> = {};
+      acts.forEach((a: any) => {
+        if (a.usage && (a.usage.initial_data || a.usage.remaining_data)) {
+          usageFromActivations[a.iccid] = a.usage;
+        }
+      });
 
-      if (activeIccids.length > 0) {
-        try {
-          const usageRes = await axios.post(`${API_BASE}/esim/usage/batch`, { iccids: activeIccids });
-          if (usageRes.data.success) {
-            setUsageData(usageRes.data.usage);
+      if (Object.keys(usageFromActivations).length > 0) {
+        setUsageData(usageFromActivations);
+        setUsageFetched(true);
+      } else {
+        // Fallback: fetch usage via batch if activations didn't include it
+        const activeIccids = acts
+          .filter((a: any) => a.status === 'Active')
+          .map((a: any) => a.iccid);
+
+        if (activeIccids.length > 0) {
+          try {
+            const usageRes = await axios.post(`${API_BASE}/esim/usage/batch`, { iccids: activeIccids });
+            if (usageRes.data.success) {
+              setUsageData(usageRes.data.usage);
+            }
+          } catch (usageErr) {
+            console.error("Failed to fetch usage data", usageErr);
+          } finally {
+            setUsageFetched(true);
           }
-        } catch (usageErr) {
-          console.error("Failed to fetch usage data", usageErr);
-        } finally {
+        } else {
           setUsageFetched(true);
         }
-      } else {
-        setUsageFetched(true);
       }
 
     } catch (err) {
