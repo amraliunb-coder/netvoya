@@ -11,7 +11,8 @@ import {
   RefreshCw,
   Mail,
   CheckCircle,
-  X
+  X,
+  Send
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -41,6 +42,8 @@ const PartnerESIMs: React.FC = () => {
   const [usageFetched, setUsageFetched] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -190,6 +193,20 @@ const PartnerESIMs: React.FC = () => {
       setLastSynced(new Date());
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleResend = async (profileId: string) => {
+    setResendingId(profileId);
+    setResendSuccess(null);
+    try {
+      await axios.post(`${API_BASE}/esim/${profileId}/resend`);
+      setResendSuccess(profileId);
+      setTimeout(() => setResendSuccess(null), 3000);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to resend QR code.');
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -427,7 +444,7 @@ const PartnerESIMs: React.FC = () => {
                 <th className="px-6 py-4">ICCID</th>
                 <th className="px-6 py-4">Issued To</th>
                 <th className="px-6 py-4">Status & Usage</th>
-                <th className="px-6 py-4 text-right">Date Details</th>
+                <th className="px-6 py-4 text-right">Date / Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -523,8 +540,30 @@ const PartnerESIMs: React.FC = () => {
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right text-slate-500 text-xs">
-                      {new Date(profile.updatedAt).toLocaleDateString()}
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-slate-500 text-xs">{new Date(profile.updatedAt).toLocaleDateString()}</span>
+                        {(profile.status === 'Assigned' || profile.status === 'Active') && profile.assigned_to_email && (
+                          <button
+                            onClick={() => handleResend(profile._id)}
+                            disabled={resendingId === profile._id}
+                            title={`Resend QR to ${profile.assigned_to_email}`}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all
+                              bg-blue-500/10 text-blue-400 border border-blue-500/20
+                              hover:bg-blue-500/20 hover:text-blue-300
+                              disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {resendingId === profile._id ? (
+                              <RefreshCw size={12} className="animate-spin" />
+                            ) : resendSuccess === profile._id ? (
+                              <CheckCircle size={12} className="text-green-400" />
+                            ) : (
+                              <Send size={12} />
+                            )}
+                            {resendingId === profile._id ? 'Sending...' : resendSuccess === profile._id ? 'Sent!' : 'Resend QR'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ));
