@@ -12,7 +12,8 @@ import {
   Mail,
   CheckCircle,
   X,
-  Send
+  Send,
+  Edit2
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -44,6 +45,10 @@ const PartnerESIMs: React.FC = () => {
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+
+  const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
+  const [editEmailValue, setEditEmailValue] = useState('');
+  const [savingEmailId, setSavingEmailId] = useState<string | null>(null);
 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
@@ -207,6 +212,28 @@ const PartnerESIMs: React.FC = () => {
       alert(err.response?.data?.message || 'Failed to resend QR code.');
     } finally {
       setResendingId(null);
+    }
+  };
+
+  const handleEditEmail = async (profileId: string) => {
+    if (!editEmailValue || !editEmailValue.includes('@')) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    try {
+      setSavingEmailId(profileId);
+      await axios.put(`${API_BASE}/esim/${profileId}/email`, { email: editEmailValue });
+      
+      setProfiles(prev => prev.map(p => 
+        p._id === profileId ? { ...p, assigned_to_email: editEmailValue } : p
+      ));
+      
+      setEditingEmailId(null);
+      setEditEmailValue('');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update email.');
+    } finally {
+      setSavingEmailId(null);
     }
   };
 
@@ -490,7 +517,46 @@ const PartnerESIMs: React.FC = () => {
                       {profile.assigned_to_name ? (
                         <div>
                           <div className="text-white">{profile.assigned_to_name}</div>
-                          {profile.assigned_to_email && <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Mail size={10} />{profile.assigned_to_email}</div>}
+                          {editingEmailId === profile._id ? (
+                            <div className="flex items-center gap-2 mt-1">
+                              <input 
+                                type="email" 
+                                value={editEmailValue}
+                                onChange={(e) => setEditEmailValue(e.target.value)}
+                                className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-xs text-white focus:outline-none focus:border-orange-500/50 w-full max-w-[150px]"
+                                autoFocus
+                              />
+                              <button 
+                                onClick={() => handleEditEmail(profile._id)}
+                                disabled={savingEmailId === profile._id}
+                                className="text-green-500 hover:text-green-400 disabled:opacity-50"
+                              >
+                                {savingEmailId === profile._id ? <RefreshCw size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                              </button>
+                              <button 
+                                onClick={() => setEditingEmailId(null)}
+                                disabled={savingEmailId === profile._id}
+                                className="text-slate-500 hover:text-white disabled:opacity-50"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 group">
+                              <Mail size={10} />
+                              {profile.assigned_to_email}
+                              <button 
+                                onClick={() => {
+                                  setEditingEmailId(profile._id);
+                                  setEditEmailValue(profile.assigned_to_email || '');
+                                }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-400 hover:text-white"
+                                title="Edit assigned email"
+                              >
+                                <Edit2 size={10} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <span className="text-slate-500 italic">Not assigned</span>
