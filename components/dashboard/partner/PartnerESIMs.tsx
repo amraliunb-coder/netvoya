@@ -545,16 +545,18 @@ const PartnerESIMs: React.FC = () => {
                             <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 group">
                               <Mail size={10} />
                               {profile.assigned_to_email}
-                              <button 
-                                onClick={() => {
-                                  setEditingEmailId(profile._id);
-                                  setEditEmailValue(profile.assigned_to_email || '');
-                                }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-400 hover:text-white"
-                                title="Edit assigned email"
-                              >
-                                <Edit2 size={10} />
-                              </button>
+                              {profile.status === 'Assigned' && (
+                                <button 
+                                  onClick={() => {
+                                    setEditingEmailId(profile._id);
+                                    setEditEmailValue(profile.assigned_to_email || '');
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-400 hover:text-white"
+                                  title="Edit assigned email"
+                                >
+                                  <Edit2 size={10} />
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
