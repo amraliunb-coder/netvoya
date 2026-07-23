@@ -30,7 +30,8 @@ export interface RegistrationData {
   zip?: string;
   country?: string;
   vatId?: string;
-  role: 'partner' | 'admin';
+  role: 'partner' | 'admin' | 'client';
+  referredByAgency?: string;
 }
 
 export interface LoginData {
@@ -49,8 +50,32 @@ export interface ApiResponse {
     firstName?: string;
     companyName?: string;
     requiresPasswordChange?: boolean;
+    referredByAgency?: string;
   };
   token?: string;
+}
+
+export interface ClientRequestPayload {
+  totalTokens: number;
+  totalAmount: number;
+  discountLabel?: string;
+  packages: {
+    name: string;
+    region: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }[];
+  clientInfo: {
+    name?: string;
+    email: string;
+    phone?: string;
+  };
+  agencyInfo?: {
+    name?: string;
+    email?: string;
+    id?: string;
+  };
 }
 
 export interface ValidationErrors {

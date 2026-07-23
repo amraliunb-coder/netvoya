@@ -7,6 +7,7 @@ interface NavbarProps {
   onInstallationClick?: () => void;
   onPricingClick?: () => void;
   onPartnerClick?: () => void;
+  onClientPortalClick?: () => void;
   onNavigate?: (page: string) => void;
   darkMode?: boolean;
 }
@@ -16,6 +17,7 @@ const Navbar: React.FC<NavbarProps> = ({
   onInstallationClick, 
   onPricingClick,
   onPartnerClick,
+  onClientPortalClick,
   onNavigate
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -34,12 +36,15 @@ const Navbar: React.FC<NavbarProps> = ({
     { name: 'Coverage', href: '#coverage' },
     { name: 'Pricing', action: 'pricing' },
     { name: 'eSIM Installation', action: 'installation' },
+    { name: 'Client Portal', action: 'client-portal' },
     { name: 'Partners', href: '#partners' },
     { name: 'Support', href: '#support' },
   ];
 
   const handleLinkClick = (link: any) => {
-    if (link.action === 'installation' && onInstallationClick) {
+    if (link.action === 'client-portal' && onClientPortalClick) {
+      onClientPortalClick();
+    } else if (link.action === 'installation' && onInstallationClick) {
       onInstallationClick();
     } else if (link.action === 'pricing' && onPricingClick) {
       onPricingClick();
@@ -75,7 +80,9 @@ const Navbar: React.FC<NavbarProps> = ({
               <button 
                 key={link.name} 
                 onClick={() => handleLinkClick(link)}
-                className="text-sm font-medium text-slate-400 hover:text-primary transition-colors focus:outline-none"
+                className={`text-sm font-medium transition-colors focus:outline-none ${
+                  link.action === 'client-portal' ? 'text-sky-400 font-semibold hover:text-sky-300' : 'text-slate-400 hover:text-primary'
+                }`}
               >
                 {link.name}
               </button>
@@ -84,6 +91,12 @@ const Navbar: React.FC<NavbarProps> = ({
 
           {/* CTA & Login */}
           <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={onClientPortalClick}
+              className="text-xs font-semibold text-sky-400 hover:text-sky-300 bg-sky-500/10 px-3 py-1.5 rounded-lg border border-sky-500/20 transition-all"
+            >
+              Client Store
+            </button>
             <button 
               onClick={onLoginClick}
               className="text-sm font-medium text-slate-300 hover:text-white transition-colors flex items-center gap-2"
@@ -126,6 +139,15 @@ const Navbar: React.FC<NavbarProps> = ({
               </button>
             ))}
             <div className="pt-4 flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onClientPortalClick) onClientPortalClick();
+                }}
+                className="w-full py-3 text-sm font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 rounded-lg hover:bg-sky-500/20 transition-colors"
+              >
+                Client Store / Portal
+              </button>
               <button 
                 onClick={() => {
                   setMobileMenuOpen(false);

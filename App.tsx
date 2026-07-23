@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ValueProps from './components/ValueProps';
@@ -15,10 +15,24 @@ import InstallationGuide from './components/InstallationGuide';
 import Pricing from './components/Pricing';
 import PartnerOnboarding from './components/PartnerOnboarding';
 import CompatibleDevices from './components/CompatibleDevices';
+import ClientPortal from './components/ClientPortal';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'login' | 'dashboard' | 'installation' | 'pricing' | 'onboarding' | 'compatible-devices'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'login' | 'dashboard' | 'installation' | 'pricing' | 'onboarding' | 'compatible-devices' | 'client-portal'>('landing');
   const [userRole, setUserRole] = useState<'admin' | 'partner'>('admin');
+  const [agencyRef, setAgencyRef] = useState<string>('partner');
+
+  useEffect(() => {
+    // Detect referral query params: ?ref=AGENCY_NAME or ?agency=AGENCY_NAME or ?view=client
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref') || urlParams.get('agency') || urlParams.get('affiliate');
+    const viewParam = urlParams.get('view');
+
+    if (ref || viewParam === 'client') {
+      if (ref) setAgencyRef(ref);
+      setCurrentView('client-portal');
+    }
+  }, []);
 
   const handleLogin = (role: 'admin' | 'partner') => {
     setUserRole(role);
@@ -64,6 +78,10 @@ const App: React.FC = () => {
     }
   };
 
+  if (currentView === 'client-portal') {
+    return <ClientPortal agencyRef={agencyRef} onBackToMain={goToLanding} />;
+  }
+
   if (currentView === 'login') {
     return <Login onLogin={handleLogin} onBack={goToLanding} />;
   }
@@ -83,6 +101,7 @@ const App: React.FC = () => {
         onInstallationClick={goToInstallation}
         onPricingClick={goToPricing}
         onPartnerClick={goToOnboarding}
+        onClientPortalClick={() => setCurrentView('client-portal')}
         onNavigate={handleNavigation}
       />
       <main>

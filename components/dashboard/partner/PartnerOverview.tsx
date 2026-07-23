@@ -11,7 +11,8 @@ import {
   TrendingUp,
   AlertTriangle,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Share2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { subDays, startOfMonth, format, isAfter, eachDayOfInterval, startOfDay, addDays } from 'date-fns';
@@ -27,8 +28,6 @@ interface Activation {
   updatedAt: string;
   bucket_id: string;
   assigned_to_name?: string;
-  // We might need to fetch package name separately or populate it, 
-  // but for now we can infer or leave generic.
 }
 
 const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
@@ -37,6 +36,8 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
     activeTokens: 0,
     availableTokens: 0
   });
+
+  const [copiedAffiliate, setCopiedAffiliate] = useState(false);
 
   const [activations, setActivations] = useState<Activation[]>([]);
   const [usageData, setUsageData] = useState<Record<string, any>>({});
