@@ -72,7 +72,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
   const [allPackages, setAllPackages] = useState<EsimPackage[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState('All');
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [countrySearchQuery, setCountrySearchQuery] = useState('');
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
   
   // Submission state
@@ -174,14 +175,80 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
     });
   };
 
-  // Filter package logic
-  const regions = ['All', ...Array.from(new Set(allPackages.map(p => p.region)))];
+  // ── Destination Flag & Search Helpers ─────────────────────────────────────
+  const countryFlags: { [key: string]: string } = {
+    'Egypt': '🇪🇬',
+    'Saudi Arabia': '🇸🇦',
+    'Jordan': '🇯🇴',
+    'Italy': '🇮🇹',
+    'United States': '🇺🇸',
+    'USA': '🇺🇸',
+    'United Kingdom': '🇬🇧',
+    'UK': '🇬🇧',
+    'Turkey': '🇹🇷',
+    'United Arab Emirates': '🇦🇪',
+    'UAE': '🇦🇪',
+    'Global': '🌐',
+    'Europe': '🇪🇺',
+    'Germany': '🇩🇪',
+    'France': '🇫🇷',
+    'Spain': '🇪🇸',
+    'Canada': '🇨🇦',
+    'Australia': '🇦🇺',
+    'Japan': '🇯🇵',
+    'China': '🇨🇳',
+    'Thailand': '🇹🇭',
+    'Vietnam': '🇻🇳',
+    'Greece': '🇬🇷',
+    'Switzerland': '🇨🇭'
+  };
 
+  const getCountryFlag = (countryName: string) => {
+    return countryFlags[countryName] || countryFlags[countryName.trim()] || '📍';
+  };
+
+  // Get all unique sorted countries/regions available in packages
+  const availableCountries = Array.from(new Set(allPackages.map(p => p.region)))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  // Determine actual available popular countries
+  const popularCountries = [
+    'Egypt',
+    'Saudi Arabia',
+    'Jordan',
+    'Italy',
+    'United States',
+    'United Kingdom',
+    'Turkey',
+    'United Arab Emirates',
+    'Europe',
+    'Global'
+  ].map(name => {
+    // try direct or USA/UK translations
+    const matched = availableCountries.find(c => {
+      const cLower = c.toLowerCase();
+      const nLower = name.toLowerCase();
+      return cLower === nLower || 
+             (nLower === 'united states' && (cLower === 'usa' || cLower === 'united states of america')) ||
+             (nLower === 'united kingdom' && (cLower === 'uk' || cLower === 'gb'));
+    });
+    return matched || null;
+  }).filter((c): c is string => c !== null);
+
+  // Filter countries matching search query
+  const searchedCountries = countrySearchQuery.trim() === ''
+    ? []
+    : availableCountries.filter(c => c.toLowerCase().includes(countrySearchQuery.toLowerCase()));
+
+  // Filter plans inside selected country
   const filteredPackages = allPackages.filter(pkg => {
-    const matchesSearch = pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          pkg.region.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRegion = selectedRegion === 'All' || pkg.region === selectedRegion;
-    return matchesSearch && matchesRegion;
+    const matchesCountry = selectedCountry ? pkg.region === selectedCountry : false;
+    const matchesPlanSearch = searchTerm.trim() === '' || 
+      pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pkg.data_limit_gb.toString().includes(searchTerm) ||
+      pkg.duration_days.toString().includes(searchTerm);
+    return matchesCountry && matchesPlanSearch;
   });
 
   // Calculate totals
@@ -550,48 +617,6 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
         ) : (
           /* Main Package & Token Selection View */
           <div className="space-y-8">
-            
-            {/* Header & Search */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-white font-display">Select eSIM Packages & Tokens</h1>
-                <p className="text-slate-400 text-xs mt-1">
-                  Choose from global eSIM packages across all destination countries available in the NetVoya API.
-                </p>
-              </div>
-
-              {/* Search input */}
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 md:w-64">
-                  <Search size={16} className="absolute left-3 top-3 text-slate-500" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search country or region..."
-                    className="w-full bg-[#141b2d] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Region Filter Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-              {regions.map(region => (
-                <button
-                  key={region}
-                  onClick={() => setSelectedRegion(region)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                    selectedRegion === region
-                      ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20'
-                      : 'bg-[#141b2d] text-slate-400 hover:text-white border border-white/5'
-                  }`}
-                >
-                  {region}
-                </button>
-              ))}
-            </div>
-
             {submitError && (
               <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs flex items-center gap-3">
                 <AlertCircle size={20} className="flex-shrink-0" />
@@ -599,96 +624,217 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
               </div>
             )}
 
-            {/* Grid Layout: Packages + Cart Sidebar */}
+            {/* Grid Layout: Packages/Destination Select + Order Summary Sidebar */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
-              {/* Package List (Left 8 cols) */}
-              <div className="lg:col-span-8 space-y-4">
-                {loadingPackages ? (
-                  <div className="text-center py-16 bg-[#141b2d] border border-white/5 rounded-3xl">
-                    <RefreshCw size={32} className="animate-spin text-sky-400 mx-auto mb-3" />
-                    <p className="text-slate-400 text-xs">Loading available country packages from API...</p>
-                  </div>
-                ) : filteredPackages.length === 0 ? (
-                  <div className="text-center py-16 bg-[#141b2d] border border-white/5 rounded-3xl">
-                    <Globe size={40} className="text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-300 text-sm font-semibold">No packages found</p>
-                    <p className="text-slate-500 text-xs mt-1">Try adjusting your search or region filter.</p>
+              {/* Main Selection Area (Left 8 cols) */}
+              <div className="lg:col-span-8 space-y-6">
+                
+                {/* ── STATE 1: Choose Destination ──────────────────────────────── */}
+                {!selectedCountry ? (
+                  <div className="space-y-8">
+                    {/* Hero Heading */}
+                    <div className="text-center py-6">
+                      <h1 className="text-3xl md:text-4xl font-bold text-white font-display tracking-tight">Where are you traveling next?</h1>
+                      <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto">
+                        Search global countries or choose a popular region to view local eSIM packages.
+                      </p>
+                    </div>
+
+                    {/* Destination Search Box */}
+                    <div className="max-w-xl mx-auto relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                        <Search size={20} />
+                      </div>
+                      <input
+                        type="text"
+                        value={countrySearchQuery}
+                        onChange={(e) => setCountrySearchQuery(e.target.value)}
+                        placeholder="Search country or region (e.g. USA, Egypt...)"
+                        className="w-full bg-[#141b2d] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 shadow-lg transition-all"
+                      />
+                    </div>
+
+                    {/* Search Results / Auto-complete list */}
+                    {countrySearchQuery.trim() !== '' ? (
+                      <div className="space-y-3 max-w-xl mx-auto">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold px-1">Search Results</p>
+                        {searchedCountries.length === 0 ? (
+                          <div className="p-8 text-center bg-[#141b2d] border border-white/5 rounded-2xl text-slate-500 text-sm">
+                            No matching destinations found.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {searchedCountries.map(country => (
+                              <button
+                                key={country}
+                                onClick={() => {
+                                  setSelectedCountry(country);
+                                  setCountrySearchQuery('');
+                                }}
+                                className="flex items-center gap-3 px-4 py-3 bg-[#141b2d] hover:bg-[#1b253b] border border-white/5 hover:border-sky-500/30 rounded-xl text-left text-sm text-white transition-all group"
+                              >
+                                <span className="text-2xl transition-transform group-hover:scale-110">{getCountryFlag(country)}</span>
+                                <span className="font-semibold">{country}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Popular Destinations Grid */
+                      <div className="space-y-4">
+                        <h3 className="text-xs text-slate-500 uppercase tracking-widest font-semibold px-1">Popular Destinations</h3>
+                        {loadingPackages ? (
+                          <div className="text-center py-12 bg-[#141b2d] border border-white/5 rounded-3xl">
+                            <RefreshCw size={24} className="animate-spin text-sky-400 mx-auto mb-2" />
+                            <p className="text-slate-500 text-xs">Loading destinations…</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {popularCountries.map(country => (
+                              <button
+                                key={country}
+                                onClick={() => setSelectedCountry(country)}
+                                className="flex flex-col items-center justify-center p-5 bg-[#141b2d] hover:bg-[#1b253b] border border-white/5 hover:border-sky-500/30 rounded-2xl text-center transition-all group hover:-translate-y-1 hover:shadow-lg hover:shadow-sky-500/5"
+                              >
+                                <span className="text-4xl mb-3 transition-transform group-hover:scale-110 duration-300">
+                                  {getCountryFlag(country)}
+                                </span>
+                                <span className="text-xs font-bold text-white group-hover:text-sky-400 transition-colors">
+                                  {country}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredPackages.map(pkg => {
-                      const { originalPrice, discountedPrice } = calculatePackagePrices(pkg);
-                      const currentQty = quantities[pkg._id] || 0;
-
-                      return (
-                        <div
-                          key={pkg._id}
-                          className={`bg-[#141b2d] border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 ${
-                            currentQty > 0
-                              ? 'border-sky-500/50 shadow-[0_0_20px_rgba(14,165,233,0.15)] bg-gradient-to-b from-[#141b2d] to-[#10182b]'
-                              : 'border-white/5 hover:border-white/15'
-                          }`}
+                  
+                  // ── STATE 2: Show plans for Selected Country ─────────────────
+                  <div className="space-y-6">
+                    {/* Back header navigation */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            setSelectedCountry(null);
+                            setSearchTerm('');
+                          }}
+                          className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors"
+                          title="Back to destinations"
                         >
-                          <div>
-                            {/* Package Header */}
-                            <div className="flex items-start justify-between gap-2 mb-3">
-                              <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                                  {pkg.region}
-                                </span>
-                                <h3 className="text-base font-bold text-white mt-1.5">{pkg.name}</h3>
-                              </div>
-                              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 flex-shrink-0">
-                                <Globe size={18} />
-                              </div>
-                            </div>
-
-                            {/* Specs */}
-                            <div className="grid grid-cols-2 gap-2 text-xs bg-black/30 p-2.5 rounded-xl border border-white/5 mb-4">
-                              <div>
-                                <span className="text-slate-500 block text-[10px]">Data Allowance</span>
-                                <span className="font-semibold text-white">{pkg.data_limit_gb} GB Data</span>
-                              </div>
-                              <div>
-                                <span className="text-slate-500 block text-[10px]">Validity</span>
-                                <span className="font-semibold text-white">{pkg.duration_days} Days</span>
-                              </div>
-                            </div>
-
-                            {/* Pricing */}
-                            <div className="flex items-baseline gap-2 mb-4">
-                              <span className="text-xl font-bold text-sky-400">${discountedPrice.toFixed(2)}</span>
-                              <span className="text-xs text-slate-500 line-through">${originalPrice.toFixed(2)}</span>
-                              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-semibold">
-                                Save 10%
-                              </span>
-                            </div>
+                          <ArrowRight size={16} className="rotate-180" />
+                        </button>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{getCountryFlag(selectedCountry)}</span>
+                            <h2 className="text-2xl font-bold text-white font-display">{selectedCountry} eSIM Plans</h2>
                           </div>
-
-                          {/* Token Quantity Stepper */}
-                          <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                            <span className="text-xs text-slate-400 font-medium">Select Tokens:</span>
-                            <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl p-1">
-                              <button
-                                onClick={() => handleQuantityChange(pkg._id, -1)}
-                                disabled={currentQty === 0}
-                                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white flex items-center justify-center disabled:opacity-30 disabled:hover:bg-white/5 transition-colors"
-                              >
-                                <Minus size={14} />
-                              </button>
-                              <span className="w-8 text-center text-xs font-bold text-white">{currentQty}</span>
-                              <button
-                                onClick={() => handleQuantityChange(pkg._id, 1)}
-                                className="w-7 h-7 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors shadow-sm"
-                              >
-                                <Plus size={14} />
-                              </button>
-                            </div>
-                          </div>
+                          <p className="text-slate-400 text-xs mt-0.5">Select eSIM token packages for this destination.</p>
                         </div>
-                      );
-                    })}
+                      </div>
+
+                      {/* Filter plans search */}
+                      <div className="relative">
+                        <Search size={14} className="absolute left-3 top-2.5 text-slate-500" />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Filter plans (e.g. 10GB)..."
+                          className="bg-[#141b2d] border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Plan Cards Grid */}
+                    {filteredPackages.length === 0 ? (
+                      <div className="text-center py-16 bg-[#141b2d] border border-white/5 rounded-3xl">
+                        <Globe size={36} className="text-slate-600 mx-auto mb-3" />
+                        <p className="text-slate-300 text-sm font-semibold">No plans match your filters</p>
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="mt-3 text-xs text-sky-400 hover:underline"
+                        >
+                          Clear plan filters
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredPackages.map(pkg => {
+                          const { originalPrice, discountedPrice } = calculatePackagePrices(pkg);
+                          const currentQty = quantities[pkg._id] || 0;
+
+                          return (
+                            <div
+                              key={pkg._id}
+                              className={`bg-[#141b2d] border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 ${
+                                currentQty > 0
+                                  ? 'border-sky-500/50 shadow-[0_0_20px_rgba(14,165,233,0.15)] bg-gradient-to-b from-[#141b2d] to-[#10182b]'
+                                  : 'border-white/5 hover:border-white/15'
+                              }`}
+                            >
+                              <div>
+                                {/* Package Header */}
+                                <div className="flex items-start justify-between gap-2 mb-3">
+                                  <div>
+                                    <h3 className="text-base font-bold text-white">{pkg.name}</h3>
+                                  </div>
+                                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                    <Globe size={16} />
+                                  </div>
+                                </div>
+
+                                {/* Specs */}
+                                <div className="grid grid-cols-2 gap-2 text-xs bg-black/30 p-2.5 rounded-xl border border-white/5 mb-4">
+                                  <div>
+                                    <span className="text-slate-500 block text-[10px]">Data Allowance</span>
+                                    <span className="font-semibold text-white">{pkg.data_limit_gb} GB Data</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500 block text-[10px]">Validity</span>
+                                    <span className="font-semibold text-white">{pkg.duration_days} Days</span>
+                                  </div>
+                                </div>
+
+                                {/* Pricing */}
+                                <div className="flex items-baseline gap-2 mb-4">
+                                  <span className="text-xl font-bold text-sky-400">${discountedPrice.toFixed(2)}</span>
+                                  <span className="text-xs text-slate-500 line-through">${originalPrice.toFixed(2)}</span>
+                                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-semibold">
+                                    Save 10%
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Token Quantity Stepper */}
+                              <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                                <span className="text-xs text-slate-400 font-medium">Select Tokens:</span>
+                                <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl p-1">
+                                  <button
+                                    onClick={() => handleQuantityChange(pkg._id, -1)}
+                                    disabled={currentQty === 0}
+                                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white flex items-center justify-center disabled:opacity-30 disabled:hover:bg-white/5 transition-colors"
+                                  >
+                                    <Minus size={14} />
+                                  </button>
+                                  <span className="w-8 text-center text-xs font-bold text-white">{currentQty}</span>
+                                  <button
+                                    onClick={() => handleQuantityChange(pkg._id, 1)}
+                                    className="w-7 h-7 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                  >
+                                    <Plus size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
