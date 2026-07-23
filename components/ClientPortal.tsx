@@ -85,9 +85,9 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef = 'partner', onBa
   const fetchPackages = async () => {
     try {
       setLoadingPackages(true);
-      const res = await axios.get(`${API_BASE}/packages`);
+      const res = await axios.get(`${API_BASE}/client-packages`);
       if (res.data && res.data.packages) {
-        setAllPackages(res.data.packages.filter((p: EsimPackage) => p.is_live !== false));
+        setAllPackages(res.data.packages);
       }
     } catch (err) {
       console.error("Failed to load packages", err);
@@ -165,8 +165,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef = 'partner', onBa
   const selectedItems = allPackages.filter(p => (quantities[p._id] || 0) > 0);
   const totalTokens = (Object.values(quantities) as number[]).reduce((sum, q) => sum + q, 0);
 
-  // Client affiliate pricing calculation (e.g. 15% special affiliate discount off retail)
-  const DISCOUNT_RATE = 0.15; // 15% discount for client affiliate portal
+  // Client affiliate pricing calculation (10% special affiliate discount off retail)
+  const DISCOUNT_RATE = 0.10; // 10% discount for client affiliate portal
   
   const calculatePackagePrices = (pkg: EsimPackage) => {
     const originalPrice = pkg.retail_price;
@@ -211,7 +211,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef = 'partner', onBa
       const response = await axios.post(`${API_BASE}/client-request-inventory`, {
         totalTokens,
         totalAmount,
-        discountLabel: '15% Agency Affiliate Discount',
+        discountLabel: '10% Agency Affiliate Discount',
         packages: packagesPayload,
         clientInfo: {
           name: currentUser.firstName || currentUser.username || 'Client',
@@ -300,7 +300,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef = 'partner', onBa
           </div>
           <div className="flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
             <Percent size={14} />
-            <span>15% Discount Applied to All Token Packages</span>
+            <span>10% Discount Applied to All Token Packages</span>
           </div>
         </div>
       </div>
@@ -591,7 +591,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef = 'partner', onBa
                               <span className="text-xl font-bold text-sky-400">${discountedPrice.toFixed(2)}</span>
                               <span className="text-xs text-slate-500 line-through">${originalPrice.toFixed(2)}</span>
                               <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-semibold">
-                                Save 15%
+                                Save 10%
                               </span>
                             </div>
                           </div>
