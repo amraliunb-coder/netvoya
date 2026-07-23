@@ -5,14 +5,19 @@ import axios from 'axios';
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 const SITE_URL = (import.meta as any).env?.VITE_SITE_URL || 'https://netvoya.com';
 
-const ApiAccess: React.FC = () => {
+interface ApiAccessProps {
+    partnerId?: string;
+}
+
+const ApiAccess: React.FC<ApiAccessProps> = ({ partnerId }) => {
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [affiliateCode, setAffiliateCode] = useState<string>('');
     const [affiliateLoading, setAffiliateLoading] = useState(true);
     const [affiliateRegenerating, setAffiliateRegenerating] = useState(false);
 
-    // Get partner_id from localStorage (set during login)
+    // Get partner_id from props or localStorage
     const getPartnerId = () => {
+        if (partnerId) return partnerId;
         try {
             const stored = localStorage.getItem('partner_user') || localStorage.getItem('user');
             if (stored) {
@@ -25,7 +30,8 @@ const ApiAccess: React.FC = () => {
 
     useEffect(() => {
         fetchAffiliateCode();
-    }, []);
+    }, [partnerId]);
+
 
     const fetchAffiliateCode = async () => {
         const partnerId = getPartnerId();

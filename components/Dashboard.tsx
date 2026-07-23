@@ -88,7 +88,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, role }) => {
         case 'overview': return <PartnerOverview setActiveTab={setActiveTab} />;
         case 'my-esims': return <PartnerESIMs />;
         case 'request': return <RequestInventory />;
-        case 'api-access': return <ApiAccess />;
+        case 'api-access': return <ApiAccess partnerId={user?.id || user?._id} />;
         case 'settings': return <SettingsView />;
         default: return <PlaceholderContent />;
       }
