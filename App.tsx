@@ -20,7 +20,7 @@ import ClientPortal from './components/ClientPortal';
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'landing' | 'login' | 'dashboard' | 'installation' | 'pricing' | 'onboarding' | 'compatible-devices' | 'client-portal'>('landing');
   const [userRole, setUserRole] = useState<'admin' | 'partner'>('admin');
-  const [agencyRef, setAgencyRef] = useState<string>('partner');
+  const [agencyRef, setAgencyRef] = useState<string>('');
 
   useEffect(() => {
     // Detect referral query params: ?ref=AGENCY_NAME or ?agency=AGENCY_NAME or ?view=client
@@ -101,7 +101,6 @@ const App: React.FC = () => {
         onInstallationClick={goToInstallation}
         onPricingClick={goToPricing}
         onPartnerClick={goToOnboarding}
-        onClientPortalClick={() => setCurrentView('client-portal')}
         onNavigate={handleNavigation}
       />
       <main>
@@ -113,7 +112,7 @@ const App: React.FC = () => {
           <Pricing onActionClick={goToOnboarding} />
         ) : (
           <>
-            <Hero onActionClick={goToOnboarding} onClientStoreClick={() => setCurrentView('client-portal')} />
+            <Hero onActionClick={goToOnboarding} />
             <ValueProps />
             <TargetAudience />
             <ServicesCoverage />
