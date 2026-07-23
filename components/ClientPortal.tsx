@@ -64,6 +64,10 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Affiliate validation state
+  const [affiliateValid, setAffiliateValid] = useState<boolean | null>(null); // null = loading
+  const [affiliateAgencyName, setAffiliateAgencyName] = useState<string>('');
+
   // Packages & Token Selection state
   const [allPackages, setAllPackages] = useState<EsimPackage[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -79,8 +83,27 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
   const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://netvoya-backend.vercel.app/api';
 
   useEffect(() => {
+    if (!agencyRef || agencyRef.trim() === '') {
+      setAffiliateValid(false);
+      return;
+    }
+    validateAffiliate();
     fetchPackages();
-  }, []);
+  }, [agencyRef]);
+
+  const validateAffiliate = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/validate-affiliate/${agencyRef}`);
+      if (res.data?.valid) {
+        setAffiliateValid(true);
+        setAffiliateAgencyName(res.data.agencyName || agencyRef);
+      } else {
+        setAffiliateValid(false);
+      }
+    } catch {
+      setAffiliateValid(false);
+    }
+  };
 
   const fetchPackages = async () => {
     try {
@@ -245,31 +268,37 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
   };
 
   // ── Access Gate ─────────────────────────────────────────────────────────────
-  // The Client Portal is ONLY accessible via a valid agency affiliate link
-  // (e.g. https://netvoya.com/?ref=AGENCY_CODE). If no agencyRef is present,
-  // show an access-denied screen.
-  if (!agencyRef || agencyRef.trim() === '') {
+  // 1. Still validating — show a spinner
+  if (affiliateValid === null) {
+    return (
+      <div className="min-h-screen bg-[#0a0f1d] text-white flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-sky-500/30 border-t-sky-400 animate-spin" />
+          <p className="text-slate-400 text-sm">Verifying your access link…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Invalid or no code — access denied
+  if (!affiliateValid) {
     return (
       <div className="min-h-screen bg-[#0a0f1d] text-white flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
-          {/* Lock icon with glow */}
           <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.15)]">
             <Lock size={36} className="text-red-400" />
           </div>
-
           <h1 className="text-2xl font-bold text-white mb-3">Access Restricted</h1>
           <p className="text-slate-400 mb-6 leading-relaxed text-sm">
-            This portal is exclusively available to clients invited by a partner agency.
-            Please use the unique affiliate link provided to you by your agency to gain access.
+            This portal is exclusively available to clients invited by a verified partner agency.
+            The link you used is either invalid or has expired.
           </p>
-
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-8 text-left">
-            <p className="text-xs text-slate-500 uppercase tracking-widest mb-2 font-semibold">Expected link format</p>
+            <p className="text-xs text-slate-500 uppercase tracking-widest mb-2 font-semibold">Valid link format</p>
             <code className="text-sky-400 text-xs break-all">
               https://netvoya.com/?ref=<span className="text-emerald-400">YOUR_AGENCY_CODE</span>
             </code>
           </div>
-
           <button
             onClick={onBackToMain}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all text-sm font-medium"
@@ -281,6 +310,9 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
       </div>
     );
   }
+
+  // 3. Valid — render the portal (use verified agencyName if available)
+  const resolvedAgencyName = affiliateAgencyName || agencyRef;
 
   return (
     <div className="min-h-screen bg-[#0a0f1d] text-white selection:bg-sky-500/30 selection:text-white pb-24">
@@ -332,7 +364,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
             <div>
               <div className="text-xs uppercase tracking-wider text-sky-300 font-semibold">Special Client Affiliate Rates</div>
               <h2 className="text-sm font-bold text-white">
-                Exclusive eSIM Access via <span className="text-sky-400 capitalize">{agencyRef || 'Partner Agency'}</span>
+                Exclusive eSIM Access via <span className="text-sky-400 capitalize">{resolvedAgencyName || 'Partner Agency'}</span>
               </h2>
             </div>
           </div>
@@ -500,7 +532,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Attributed Agency:</span>
-                <span className="text-emerald-400 capitalize">{agencyRef || 'Partner'}</span>
+                <span className="text-emerald-400 capitalize">{resolvedAgencyName || 'Partner'}</span>
               </div>
             </div>
 
