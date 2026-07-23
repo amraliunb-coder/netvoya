@@ -5,9 +5,10 @@ import { ArrowRight, PlayCircle } from 'lucide-react';
 
 interface HeroProps {
   onActionClick?: () => void;
+  onClientStoreClick?: () => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ onActionClick }) => {
+const Hero: React.FC<HeroProps> = ({ onActionClick, onClientStoreClick }) => {
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-36">
       {/* Background Elements */}
@@ -48,6 +49,15 @@ const Hero: React.FC<HeroProps> = ({ onActionClick }) => {
             <Button variant="secondary" icon={<PlayCircle size={18} />} onClick={onActionClick}>
               Book a Platform Demo
             </Button>
+            {onClientStoreClick && (
+              <button
+                onClick={onClientStoreClick}
+                className="px-6 py-3 rounded-lg text-sm font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 transition-all shadow-md flex items-center gap-2"
+              >
+                <span>Client eSIM Portal</span>
+                <ArrowRight size={16} />
+              </button>
+            )}
           </div>
         </Reveal>
 

@@ -113,7 +113,7 @@ const App: React.FC = () => {
           <Pricing onActionClick={goToOnboarding} />
         ) : (
           <>
-            <Hero onActionClick={goToOnboarding} />
+            <Hero onActionClick={goToOnboarding} onClientStoreClick={() => setCurrentView('client-portal')} />
             <ValueProps />
             <TargetAudience />
             <ServicesCoverage />
