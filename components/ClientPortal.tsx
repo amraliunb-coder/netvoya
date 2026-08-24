@@ -67,6 +67,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
   // Affiliate validation state
   const [affiliateValid, setAffiliateValid] = useState<boolean | null>(null); // null = loading
   const [affiliateAgencyName, setAffiliateAgencyName] = useState<string>('');
+  const [affiliateAgencyId, setAffiliateAgencyId] = useState<string>('');
 
   // Packages & Token Selection state
   const [allPackages, setAllPackages] = useState<EsimPackage[]>([]);
@@ -98,6 +99,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
       if (res.data?.valid) {
         setAffiliateValid(true);
         setAffiliateAgencyName(res.data.agencyName || agencyRef);
+        if (res.data.agencyId) setAffiliateAgencyId(res.data.agencyId);
       } else {
         setAffiliateValid(false);
       }
@@ -309,9 +311,9 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ agencyRef, onBackToMain }) 
           phone: currentUser.phone || ''
         },
         agencyInfo: {
-          name: agencyRef || 'Partner Agency',
-          email: `${agencyRef}@netvoya.partner`,
-          id: agencyRef
+          name: affiliateAgencyName || agencyRef || 'Partner Agency',
+          id: affiliateAgencyId || agencyRef,
+          code: agencyRef
         }
       });
 

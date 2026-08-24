@@ -12,8 +12,10 @@ interface ApiAccessProps {
 const ApiAccess: React.FC<ApiAccessProps> = ({ partnerId }) => {
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [affiliateCode, setAffiliateCode] = useState<string>('');
+    const [apiKey, setApiKey] = useState<string>('');
     const [affiliateLoading, setAffiliateLoading] = useState(true);
     const [affiliateRegenerating, setAffiliateRegenerating] = useState(false);
+    const [generatingKey, setGeneratingKey] = useState(false);
 
     // Get partner_id from props or localStorage
     const getPartnerId = () => {
@@ -39,13 +41,30 @@ const ApiAccess: React.FC<ApiAccessProps> = ({ partnerId }) => {
         try {
             setAffiliateLoading(true);
             const res = await axios.get(`${API_BASE}/partner/settings?partner_id=${partnerId}`);
-            if (res.data?.settings?.affiliateCode) {
-                setAffiliateCode(res.data.settings.affiliateCode);
+            if (res.data?.settings) {
+                if (res.data.settings.affiliateCode) setAffiliateCode(res.data.settings.affiliateCode);
+                if (res.data.settings.apiKey) setApiKey(res.data.settings.apiKey);
             }
         } catch (err) {
-            console.error('Failed to load affiliate code', err);
+            console.error('Failed to load partner settings', err);
         } finally {
             setAffiliateLoading(false);
+        }
+    };
+
+    const generateApiKey = async () => {
+        const partnerId = getPartnerId();
+        if (!partnerId) return;
+        try {
+            setGeneratingKey(true);
+            const res = await axios.post(`${API_BASE}/partner/settings/generate-key`, { partner_id: partnerId });
+            if (res.data?.apiKey) {
+                setApiKey(res.data.apiKey);
+            }
+        } catch (err) {
+            console.error('Failed to generate API Key', err);
+        } finally {
+            setGeneratingKey(false);
         }
     };
 
@@ -185,43 +204,37 @@ const ApiAccess: React.FC<ApiAccessProps> = ({ partnerId }) => {
 
                     <div className="space-y-6 relative z-10">
                         <div className="space-y-2">
-                            <label className="text-xs font-mono text-slate-500 uppercase">Client ID</label>
+                            <label className="text-xs font-mono text-slate-500 uppercase">API Key (Bearer Token)</label>
                             <div className="flex items-center gap-3">
                                 <input
                                     type="text"
                                     readOnly
-                                    value={apiCredentials.clientId}
+                                    value={apiKey || 'No API Key generated yet'}
                                     className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 px-4 text-emerald-400 font-mono text-sm focus:outline-none"
                                 />
-                                <button
-                                    onClick={() => copyToClipboard(apiCredentials.clientId, 'id')}
-                                    className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                >
-                                    {copiedKey === 'id' ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-mono text-slate-500 uppercase">Client Secret</label>
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="password"
-                                    readOnly
-                                    value={apiCredentials.clientSecret}
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 px-4 text-slate-300 font-mono text-sm focus:outline-none"
-                                />
-                                <button
-                                    onClick={() => copyToClipboard(apiCredentials.clientSecret, 'secret')}
-                                    className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                >
-                                    {copiedKey === 'secret' ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} />}
-                                </button>
+                                {apiKey ? (
+                                    <button
+                                        onClick={() => copyToClipboard(apiKey, 'apiKey')}
+                                        className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                        title="Copy API Key"
+                                    >
+                                        {copiedKey === 'apiKey' ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} />}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={generateApiKey}
+                                        disabled={generatingKey}
+                                        className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                                    >
+                                        <RefreshCw size={12} className={generatingKey ? 'animate-spin' : ''} />
+                                        {generatingKey ? 'Generating…' : 'Generate'}
+                                    </button>
+                                )}
                             </div>
                         </div>
 
                         <div className="pt-2 text-xs text-orange-400 bg-orange-500/10 p-3 rounded-lg border border-orange-500/20">
-                            <strong>Warning:</strong> Never share your Client Secret. If comprised, you can regenerate it, which will instantly revoke the old one.
+                            <strong>Security Notice:</strong> Keep your API key secure. It provides full access to query inventory and manage eSIM assignments.
                         </div>
                     </div>
                 </div>
