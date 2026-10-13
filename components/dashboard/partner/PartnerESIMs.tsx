@@ -444,6 +444,7 @@ const PartnerESIMs: React.FC = () => {
               <option value="All">All Status</option>
               <option value="Active">Active</option>
               <option value="Assigned">Assigned</option>
+              <option value="Expired">Expired</option>
             </select>
             <button
               onClick={handleSync}
@@ -542,21 +543,21 @@ const PartnerESIMs: React.FC = () => {
                               </button>
                             </div>
                           ) : (
-                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 group">
-                              <Mail size={10} />
-                              {profile.assigned_to_email}
-                              {profile.status === 'Assigned' && (
-                                <button 
-                                  onClick={() => {
-                                    setEditingEmailId(profile._id);
-                                    setEditEmailValue(profile.assigned_to_email || '');
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-400 hover:text-white"
-                                  title="Edit assigned email"
-                                >
-                                  <Edit2 size={10} />
-                                </button>
-                              )}
+                            <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 group">
+                              <Mail size={12} className="text-slate-500 shrink-0" />
+                              <span className="truncate max-w-[160px] text-slate-300 font-mono text-[11px]" title={profile.assigned_to_email}>
+                                {profile.assigned_to_email}
+                              </span>
+                              <button 
+                                onClick={() => {
+                                  setEditingEmailId(profile._id);
+                                  setEditEmailValue(profile.assigned_to_email || '');
+                                }}
+                                className="opacity-70 hover:opacity-100 transition-opacity ml-1 text-slate-400 hover:text-orange-400 p-0.5 rounded"
+                                title="Edit assigned email address to resend"
+                              >
+                                <Edit2 size={12} />
+                              </button>
                             </div>
                           )}
                         </div>
@@ -566,18 +567,25 @@ const PartnerESIMs: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-2">
-                        <span className={`inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${profile.status === 'Active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                        <span className={`inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          profile.status === 'Active' 
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                            : profile.status === 'Expired'
+                            ? 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
+                            : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                        }`}>
                           {profile.status}
                         </span>
-                        {profile.status === 'Active' && usageData[profile.iccid] ? (
+                        {(profile.status === 'Active' || profile.status === 'Expired') && (usageData[profile.iccid] || profile.usage) ? (
                           (() => {
-                            const u = usageData[profile.iccid];
-                            if (!u.initial_data || !u.remaining_data) return <div className="text-slate-500 text-xs mt-1">Usage unavailable</div>;
+                            const u = usageData[profile.iccid] || profile.usage || {};
+                            if (!u.initial_data && !u.remaining_data) return <div className="text-slate-500 text-xs mt-1">Usage unavailable</div>;
 
                             const parseVal = (str: string) => {
                               if (!str) return 0;
                               const num = parseFloat(str) || 0;
                               if (str.toUpperCase().includes('GB')) return num * 1024;
+                              if (str.toUpperCase().includes('MB')) return num;
                               return num;
                             };
 
@@ -586,18 +594,24 @@ const PartnerESIMs: React.FC = () => {
                             const pct = initial > 0 ? (remaining / initial) * 100 : 0;
 
                             let colorClass = "bg-green-500";
-                            if (pct < 20) colorClass = "bg-red-500";
+                            if (pct === 0 || profile.status === 'Expired') colorClass = "bg-zinc-500";
+                            else if (pct < 20) colorClass = "bg-red-500";
                             else if (pct < 50) colorClass = "bg-orange-500";
 
                             return (
-                              <div className="w-full max-w-[120px] mt-1">
+                              <div className="w-full max-w-[130px] mt-1">
                                 <div className="flex justify-between text-[10px] text-slate-400 mb-1">
-                                  <span>{u.remaining_data} left</span>
-                                  <span>of {u.initial_data}</span>
+                                  <span>{u.remaining_data || '0 GB'} left</span>
+                                  <span>of {u.initial_data || '7 GB'}</span>
                                 </div>
                                 <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                                   <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}></div>
                                 </div>
+                                {u.expiration_date && (
+                                  <div className="text-[9px] text-slate-500 mt-0.5 truncate" title={`Expires: ${u.expiration_date}`}>
+                                    {profile.status === 'Expired' ? 'Expired' : 'Exp'}: {u.expiration_date.split(' ')[0]}
+                                  </div>
+                                )}
                               </div>
                             );
                           })()
@@ -611,7 +625,7 @@ const PartnerESIMs: React.FC = () => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex flex-col items-end gap-2">
                         <span className="text-slate-500 text-xs">{new Date(profile.updatedAt).toLocaleDateString()}</span>
-                        {(profile.status === 'Assigned' || profile.status === 'Active') && profile.assigned_to_email && (
+                        {profile.assigned_to_email && profile.status !== 'Available' && (
                           <button
                             onClick={() => handleResend(profile._id)}
                             disabled={resendingId === profile._id}

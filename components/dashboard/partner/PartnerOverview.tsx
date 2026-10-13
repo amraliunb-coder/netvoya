@@ -84,24 +84,37 @@ const PartnerOverview: React.FC<PartnerOverviewProps> = ({ setActiveTab }) => {
           const acts = actRes.data.activations || [];
           setActivations(acts);
 
-          // Fetch usage for active eSIMs
-          const activeIccids = acts
-            .filter((a: Activation) => a.status === 'Active')
-            .map((a: Activation) => a.iccid);
+          // Extract usage directly from activations
+          const usageFromActs: Record<string, any> = {};
+          acts.forEach((a: any) => {
+            if (a.usage && (a.usage.initial_data || a.usage.remaining_data)) {
+              usageFromActs[a.iccid] = a.usage;
+            }
+          });
 
-          if (activeIccids.length > 0) {
-            try {
-              const usageRes = await axios.post(`${API_BASE}/esim/usage/batch`, { iccids: activeIccids });
-              if (usageRes.data.success) {
-                setUsageData(usageRes.data.usage);
+          if (Object.keys(usageFromActs).length > 0) {
+            setUsageData(usageFromActs);
+            setUsageFetched(true);
+          } else {
+            // Fetch usage for active eSIMs
+            const activeIccids = acts
+              .filter((a: Activation) => a.status === 'Active')
+              .map((a: Activation) => a.iccid);
+
+            if (activeIccids.length > 0) {
+              try {
+                const usageRes = await axios.post(`${API_BASE}/esim/usage/batch`, { iccids: activeIccids });
+                if (usageRes.data.success) {
+                  setUsageData(usageRes.data.usage);
+                }
+              } catch (usageErr) {
+                console.error("Failed to fetch usage data", usageErr);
+              } finally {
+                setUsageFetched(true);
               }
-            } catch (usageErr) {
-              console.error("Failed to fetch usage data", usageErr);
-            } finally {
+            } else {
               setUsageFetched(true);
             }
-          } else {
-            setUsageFetched(true);
           }
         }
       } catch (err) {
